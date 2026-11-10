@@ -3,7 +3,7 @@ package com.smartlib.model;
 import com.smartlib.interfaces.Borrowable;
 import java.util.List;
 
-/** Buku digital (fitur lanjutan PRD 5.2). Tidak punya eksemplar fisik. */
+
 public class EBook extends LibraryItem implements Borrowable {
     private String fileFormat;
     private String downloadUrl;

@@ -1,6 +1,5 @@
 package com.smartlib.enums;
 
-/** Pembantu internal paket enums agar parsing nilai database konsisten. */
 final class EnumParser {
     private EnumParser() { }
 

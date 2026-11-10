@@ -3,7 +3,7 @@ package com.smartlib.model;
 import com.smartlib.interfaces.Borrowable;
 import java.util.List;
 
-/** Buku fisik. Dapat dipinjam; ketersediaan nyata ditentukan oleh status eksemplarnya. */
+
 public class Book extends LibraryItem implements Borrowable {
     private String edition;
 

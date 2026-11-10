@@ -1,6 +1,6 @@
 package com.smartlib.model;
 
-/** Penulis koleksi (tabel authors). Relasi ke koleksi many-to-many lewat item_authors. */
+
 public class Author {
     private int id;                 // 0 = belum disimpan ke database
     private String name;
@@ -13,7 +13,7 @@ public class Author {
         setBiography(biography);
     }
 
-    /** Untuk penulis baru yang belum punya ID. */
+
     public Author(String name, String biography) {
         this(0, name, biography);
     }
@@ -22,7 +22,7 @@ public class Author {
     public String getName() { return name; }
     public String getBiography() { return biography; }
 
-    /** Dipanggil DAO sekali saja setelah INSERT. */
+
     public void assignId(int generatedId) {
         if (id != 0) throw new IllegalStateException("ID sudah ditetapkan.");
         if (generatedId <= 0) throw new IllegalArgumentException("ID hasil generate harus positif.");
