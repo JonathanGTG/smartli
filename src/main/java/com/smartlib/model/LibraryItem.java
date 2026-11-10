@@ -6,13 +6,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Kelas dasar abstrak semua jenis koleksi (tabel library_items).
- * Satu LibraryItem adalah satu JUDUL; eksemplar fisiknya (BookCopy) ada di modul lain.
- *
- * Semua setter bersifat final supaya aman dipanggil dari constructor
- * tanpa risiko di-override oleh subclass.
- */
+
 public abstract class LibraryItem {
     private int id;                 // 0 = belum disimpan ke database
     private String title;
@@ -37,17 +31,13 @@ public abstract class LibraryItem {
         setAuthors(authors);
     }
 
-    // ---- Method abstract: wajib diimplementasikan, perilakunya berbeda per jenis ----
 
-    /** Label jenis koleksi, mis. "Buku", "E-Book", "Jurnal". */
     public abstract String getItemType();
 
-    /** Ringkasan satu baris yang berisi atribut khusus tiap jenis koleksi. */
+
     public abstract String getDetails();
 
-    // ---- Method konkret yang diwariskan apa adanya ----
 
-    /** Nama penulis dipisah koma, siap untuk kolom JTable. */
     public String getAuthorNames() {
         return authors.stream().map(Author::getName).collect(Collectors.joining(", "));
     }
@@ -60,10 +50,10 @@ public abstract class LibraryItem {
     public Category getCategory() { return category; }
     public String getDescription() { return description; }
 
-    /** Daftar read-only; ubah lewat addAuthor, removeAuthor, atau setAuthors. */
+
     public List<Author> getAuthors() { return Collections.unmodifiableList(authors); }
 
-    /** Dipanggil DAO sekali saja setelah INSERT. */
+
     public void assignId(int generatedId) {
         if (id != 0) throw new IllegalStateException("ID sudah ditetapkan.");
         if (generatedId <= 0) throw new IllegalArgumentException("ID hasil generate harus positif.");
@@ -76,7 +66,7 @@ public abstract class LibraryItem {
         this.title = title.trim();
     }
 
-    /** ISBN kosong disimpan sebagai null agar tidak melanggar constraint UNIQUE di database. */
+
     public final void setIsbn(String isbn) {
         this.isbn = (isbn == null || isbn.isBlank()) ? null : isbn.trim();
     }
@@ -104,7 +94,7 @@ public abstract class LibraryItem {
         if (newAuthors != null) newAuthors.forEach(this::addAuthor);
     }
 
-    /** Menambah penulis; penulis yang sama (berdasarkan equals) tidak ditambahkan dua kali. */
+
     public final void addAuthor(Author author) {
         Objects.requireNonNull(author, "Penulis tidak boleh null.");
         if (!authors.contains(author)) authors.add(author);

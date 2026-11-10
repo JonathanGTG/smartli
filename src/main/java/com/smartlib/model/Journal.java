@@ -2,10 +2,7 @@ package com.smartlib.model;
 
 import java.util.List;
 
-/**
- * Jurnal ilmiah. Sengaja TIDAK mengimplementasikan Borrowable:
- * jurnal hanya dibaca di tempat, sehingga tidak bisa masuk transaksi pinjaman.
- */
+
 public class Journal extends LibraryItem {
     private String volume;
     private String issue;

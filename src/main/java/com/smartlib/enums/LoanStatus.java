@@ -1,6 +1,6 @@
 package com.smartlib.enums;
 
-/** Status transaksi pinjaman (tabel loans, PRD bagian 9.3). */
+
 public enum LoanStatus {
     ACTIVE("Aktif"),
     COMPLETED("Selesai"),
@@ -12,7 +12,7 @@ public enum LoanStatus {
 
     public String getLabel() { return label; }
 
-    /** Transaksi yang sudah selesai atau dibatalkan tidak boleh diubah lagi. */
+
     public boolean isFinal() { return this != ACTIVE; }
 
     public static LoanStatus fromDatabase(String value) {
