@@ -41,12 +41,12 @@ public class DashboardFrame extends JFrame {
 
     // Tabel laporan cepat
     private final ReportTablePanel overdueTable =
-        new ReportTablePanel("📋 Buku Terlambat",
-            new String[]{"Anggota", "Judul Buku", "Jatuh Tempo", "Hari Terlambat"});
+            new ReportTablePanel("📋 Buku Terlambat",
+                    new String[]{"Anggota", "Judul Buku", "Jatuh Tempo", "Hari Terlambat"});
 
     private final ReportTablePanel mostBorrowedTable =
-        new ReportTablePanel("🏆 Top-5 Buku Paling Sering Dipinjam",
-            new String[]{"Judul Buku", "Jumlah Pinjam"});
+            new ReportTablePanel("🏆 Top-5 Buku Paling Sering Dipinjam",
+                    new String[]{"Judul Buku", "Jumlah Pinjam"});
 
     public DashboardFrame(User user) {
         super("SmartLib — Dashboard " + user.getRole().getLabel());
@@ -75,7 +75,7 @@ public class DashboardFrame extends JFrame {
 
         // Tabel laporan
         JSplitPane tables = new JSplitPane(
-            JSplitPane.HORIZONTAL_SPLIT, overdueTable, mostBorrowedTable);
+                JSplitPane.HORIZONTAL_SPLIT, overdueTable, mostBorrowedTable);
         tables.setResizeWeight(0.6);
         tables.setBorder(null);
 
@@ -110,7 +110,7 @@ public class DashboardFrame extends JFrame {
         title.setForeground(Color.WHITE);
 
         JLabel info = new JLabel("Selamat datang, " + user.getFullName()
-            + "  |  Role: " + user.getRole().getLabel());
+                + "  |  Role: " + user.getRole().getLabel());
         info.setForeground(new Color(0xBBDEFB));
 
         panel.add(title, BorderLayout.WEST);
@@ -128,31 +128,35 @@ public class DashboardFrame extends JFrame {
         addNavLabel(panel, "MENU");
 
         addNavButton(panel, "🏠  Dashboard",
-            user.hasPermission(Permission.VIEW_REPORTS), this::refresh);
+                user.hasPermission(Permission.VIEW_REPORTS), this::refresh);
 
         addNavButton(panel, "📖  Katalog Buku",
-            user.hasPermission(Permission.VIEW_CATALOG),
-            () -> JOptionPane.showMessageDialog(this, "Modul Katalog (Anggota 3)."));
+                user.hasPermission(Permission.VIEW_CATALOG),
+                () -> new CatalogFrame().setVisible(true));
+
+        addNavButton(panel, "🗂  Kelola Koleksi & Anggota",
+                user.hasPermission(Permission.MANAGE_COLLECTION) || user.hasPermission(Permission.MANAGE_MEMBERS),
+                () -> CollectionMenuFrame.open(user));
 
         addNavButton(panel, "🔄  Peminjaman",
-            user.hasPermission(Permission.PROCESS_LOAN),
-            () -> JOptionPane.showMessageDialog(this, "Modul Peminjaman (Anggota 4)."));
+                user.hasPermission(Permission.PROCESS_LOAN),
+                () -> JOptionPane.showMessageDialog(this, "Modul Peminjaman (Anggota 4)."));
 
         addNavButton(panel, "↩  Pengembalian",
-            user.hasPermission(Permission.PROCESS_RETURN),
-            () -> JOptionPane.showMessageDialog(this, "Modul Pengembalian (Anggota 4)."));
+                user.hasPermission(Permission.PROCESS_RETURN),
+                () -> JOptionPane.showMessageDialog(this, "Modul Pengembalian (Anggota 4)."));
 
         addNavButton(panel, "📊  Laporan",
-            user.hasPermission(Permission.VIEW_REPORTS),
-            () -> new ReportFrame(user).setVisible(true));
+                user.hasPermission(Permission.VIEW_REPORTS),
+                () -> new ReportFrame(user).setVisible(true));
 
         addNavButton(panel, "👥  Kelola Pengguna",
-            user.hasPermission(Permission.MANAGE_USERS),
-            () -> new UserManagementFrame().setVisible(true));
+                user.hasPermission(Permission.MANAGE_USERS),
+                () -> new UserManagementFrame().setVisible(true));
 
         addNavButton(panel, "📜  Riwayat Saya",
-            user.hasPermission(Permission.VIEW_OWN_HISTORY),
-            () -> JOptionPane.showMessageDialog(this, "Modul Riwayat (Anggota 4)."));
+                user.hasPermission(Permission.VIEW_OWN_HISTORY),
+                () -> JOptionPane.showMessageDialog(this, "Modul Riwayat (Anggota 4)."));
 
         panel.add(Box.createVerticalGlue());
 
@@ -258,8 +262,8 @@ public class DashboardFrame extends JFrame {
 
     private void doLogout() {
         int confirm = JOptionPane.showConfirmDialog(this,
-            "Yakin ingin logout?", "Konfirmasi Logout",
-            JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+                "Yakin ingin logout?", "Konfirmasi Logout",
+                JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
         if (confirm != JOptionPane.YES_OPTION) return;
         authService.logout();
         dispose();
@@ -268,11 +272,11 @@ public class DashboardFrame extends JFrame {
 
     private void handleError(Exception ex) {
         Throwable cause = (ex instanceof java.util.concurrent.ExecutionException)
-            ? ex.getCause() : ex;
+                ? ex.getCause() : ex;
         if (cause instanceof DataAccessException) {
             JOptionPane.showMessageDialog(this,
-                "Tidak dapat terhubung ke database.\n" + cause.getMessage(),
-                "Error Database", JOptionPane.WARNING_MESSAGE);
+                    "Tidak dapat terhubung ke database.\n" + cause.getMessage(),
+                    "Error Database", JOptionPane.WARNING_MESSAGE);
         }
         // Error lain diabaikan secara diam-diam (UI tetap tampil)
     }
