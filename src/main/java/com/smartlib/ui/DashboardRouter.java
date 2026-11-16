@@ -31,9 +31,13 @@ public final class DashboardRouter {
             frame.add(welcome, BorderLayout.NORTH);
 
             JPanel menu = new JPanel(new GridLayout(0, 1, 8, 8));
-            addMenu(menu, "Katalog Buku", user.hasPermission(Permission.VIEW_CATALOG), null);
+            addMenu(menu, "Katalog Buku", user.hasPermission(Permission.VIEW_CATALOG), () -> {
+                new CatalogFrame().setVisible(true);
+            });
             addMenu(menu, "Peminjaman & Pengembalian", user.hasPermission(Permission.PROCESS_LOAN), null);
-            addMenu(menu, "Kelola Koleksi & Anggota", user.hasPermission(Permission.MANAGE_COLLECTION), null);
+            addMenu(menu, "Kelola Koleksi & Anggota",
+                    user.hasPermission(Permission.MANAGE_COLLECTION) || user.hasPermission(Permission.MANAGE_MEMBERS),
+                    () -> CollectionMenuFrame.open(user));
             addMenu(menu, "Riwayat & Denda Saya", user.hasPermission(Permission.VIEW_OWN_HISTORY), null);
             addMenu(menu, "Laporan", user.hasPermission(Permission.VIEW_REPORTS), null);
             addMenu(menu, "Kelola Pengguna", user.hasPermission(Permission.MANAGE_USERS), () -> {
