@@ -89,40 +89,42 @@ CREATE TABLE IF NOT EXISTS item_authors (
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------------------
--- 5. book_copies : eksemplar fisik. Satu judul bisa punya banyak eksemplar.
---    barcode = kode unik eksemplar (di Java: BookCopy.getBarcode()).
---    Status sama dengan enum Java ItemStatus.
---    Hapus judul yang masih punya eksemplar -> DITOLAK (RESTRICT);
---    service akan menghapus eksemplar lebih dulu bila diperbolehkan.
+-- 5. item_copies : eksemplar fisik (PRD Tabel 8).
+--    item_copies adalah tabel utama (sesuai PRD & relasi FK loan/reservasi).
+--    book_copies disediakan sebagai VIEW alias agar kompatibel dengan BookDAO & ReportDAO.
 -- ---------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS book_copies (
-                                           id             INT         PRIMARY KEY AUTO_INCREMENT,
-                                           item_id        INT         NOT NULL,
-                                           barcode        VARCHAR(50) NULL,
+CREATE TABLE IF NOT EXISTS item_copies (
+    id             INT         PRIMARY KEY AUTO_INCREMENT,
+    item_id        INT         NOT NULL,
+    barcode        VARCHAR(50) NULL,
     status         ENUM('AVAILABLE','BORROWED','RESERVED','DAMAGED','LOST')
-    NOT NULL DEFAULT 'AVAILABLE',
+                   NOT NULL DEFAULT 'AVAILABLE',
     shelf_location VARCHAR(50) NULL,
     created_at     TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uq_copies_barcode UNIQUE (barcode),
     CONSTRAINT fk_copies_item FOREIGN KEY (item_id)
-    REFERENCES library_items(id) ON DELETE RESTRICT ON UPDATE CASCADE,
+        REFERENCES library_items(id) ON DELETE RESTRICT ON UPDATE CASCADE,
     INDEX idx_copies_item_status (item_id, status)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE OR REPLACE VIEW book_copies AS SELECT * FROM item_copies;
 
 -- ---------------------------------------------------------------------
 -- 6. members : data anggota perpustakaan (BUKAN akun login).
 --    user_id bersifat opsional: menghubungkan anggota ke akun di tabel
 --    users (role ANGGOTA). UNIQUE agar satu akun hanya untuk satu anggota.
+--    valid_until: masa berlaku keanggotaan (sesuai PRD FR-04 & Aturan 8.1).
 --    Anggota yang punya riwayat peminjaman dinonaktifkan, bukan dihapus.
 -- ---------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS members (
-                                       id          INT          PRIMARY KEY AUTO_INCREMENT,
-                                       member_code VARCHAR(20)  NOT NULL,
+    id          INT          PRIMARY KEY AUTO_INCREMENT,
+    member_code VARCHAR(20)  NOT NULL,
     full_name   VARCHAR(100) NOT NULL,
     email       VARCHAR(100) NULL,
     phone       VARCHAR(20)  NULL,
     address     VARCHAR(255) NULL,
     join_date   DATE         NOT NULL,
+    valid_until DATE         NULL,
     status      ENUM('ACTIVE','INACTIVE') NOT NULL DEFAULT 'ACTIVE',
     user_id     INT          NULL,
     created_at  TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -130,9 +132,10 @@ CREATE TABLE IF NOT EXISTS members (
     CONSTRAINT uq_members_email UNIQUE (email),
     CONSTRAINT uq_members_user  UNIQUE (user_id),
     CONSTRAINT fk_members_user FOREIGN KEY (user_id)
-    REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE,
-    INDEX idx_members_name (full_name)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE,
+    INDEX idx_members_name (full_name),
+    INDEX idx_members_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =====================================================================
 -- DATA CONTOH UNTUK PENGUJIAN (hapus/ganti sebelum demo akhir bila perlu)
@@ -196,7 +199,7 @@ INSERT IGNORE INTO item_authors (item_id, author_id) VALUES
 ((SELECT id FROM library_items WHERE isbn = '978-000-0000-05-9'), (SELECT id FROM authors WHERE name = 'Robert C. Martin'));
 
 -- Eksemplar fisik (hanya untuk BOOK). Ada yang BORROWED/DAMAGED untuk uji hitung stok.
-INSERT IGNORE INTO book_copies (item_id, barcode, status, shelf_location) VALUES
+INSERT IGNORE INTO item_copies (item_id, barcode, status, shelf_location) VALUES
 ((SELECT id FROM library_items WHERE isbn = '978-000-0000-01-1'), 'BC-0001', 'AVAILABLE', 'Rak A1'),
 ((SELECT id FROM library_items WHERE isbn = '978-000-0000-01-1'), 'BC-0002', 'BORROWED',  'Rak A1'),
 ((SELECT id FROM library_items WHERE isbn = '978-000-0000-01-1'), 'BC-0003', 'AVAILABLE', 'Rak A1'),
@@ -207,12 +210,12 @@ INSERT IGNORE INTO book_copies (item_id, barcode, status, shelf_location) VALUES
 ((SELECT id FROM library_items WHERE isbn = '978-000-0000-04-2'), 'BC-0008', 'AVAILABLE', 'Rak B2');
 
 -- Anggota perpustakaan (AGT-0001 dihubungkan ke akun login anggota1)
-INSERT IGNORE INTO members (member_code, full_name, email, phone, address, join_date, status, user_id) VALUES
-('AGT-0001', 'Anggota Satu',  'anggota1@contoh.local', '081200000001', 'Medan',          '2026-01-10', 'ACTIVE',
+INSERT IGNORE INTO members (member_code, full_name, email, phone, address, join_date, valid_until, status, user_id) VALUES
+('AGT-0001', 'Anggota Satu',  'anggota1@contoh.local', '081200000001', 'Medan',          '2026-01-10', '2027-01-10', 'ACTIVE',
     (SELECT id FROM users WHERE username = 'anggota1')),
-('AGT-0002', 'Budi Santoso',  'budi@contoh.local',     '081200000002', 'Medan Baru',     '2026-02-15', 'ACTIVE',   NULL),
-('AGT-0003', 'Siti Aminah',   'siti@contoh.local',     '081200000003', 'Medan Johor',    '2026-03-01', 'ACTIVE',   NULL),
-('AGT-0004', 'Dewi Lestari',  'dewi@contoh.local',     '081200000004', 'Medan Selayang', '2025-11-20', 'INACTIVE', NULL);
+('AGT-0002', 'Budi Santoso',  'budi@contoh.local',     '081200000002', 'Medan Baru',     '2026-02-15', '2027-02-15', 'ACTIVE',   NULL),
+('AGT-0003', 'Siti Aminah',   'siti@contoh.local',     '081200000003', 'Medan Johor',    '2026-03-01', '2027-03-01', 'ACTIVE',   NULL),
+('AGT-0004', 'Dewi Lestari',  'dewi@contoh.local',     '081200000004', 'Medan Selayang', '2025-11-20', '2026-01-01', 'INACTIVE', NULL);
 
 -- =====================================================================
 -- QUERY PEMERIKSAAN (jalankan manual setelah file ini selesai)

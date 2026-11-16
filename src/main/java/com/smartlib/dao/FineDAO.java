@@ -6,6 +6,10 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Akses database denda keterlambatan (tabel fines).
+ * Diselaraskan dengan skema database SmartLib dan PRD.
+ */
 public final class FineDAO {
     private FineDAO() {
     }
@@ -24,15 +28,15 @@ public final class FineDAO {
 
     public static List<FineRecord> findByMember(Connection connection, long memberId) throws SQLException {
         String sql = """
-                SELECT f.fine_id, f.loan_item_id, i.title, f.overdue_days,
+                SELECT f.id AS fine_id, f.loan_item_id, i.title, f.overdue_days,
                        f.rate_per_day, f.amount, f.status, f.assessed_at, f.paid_at
                 FROM fines f
-                JOIN loan_items li ON li.loan_item_id = f.loan_item_id
-                JOIN loans l ON l.loan_id = li.loan_id
-                JOIN item_copies c ON c.copy_id = li.copy_id
-                JOIN library_items i ON i.item_id = c.item_id
+                JOIN loan_items li ON li.id = f.loan_item_id
+                JOIN loans l ON l.id = li.loan_id
+                JOIN item_copies c ON c.id = li.copy_id
+                JOIN library_items i ON i.id = c.item_id
                 WHERE l.member_id = ?
-                ORDER BY f.assessed_at DESC, f.fine_id DESC
+                ORDER BY f.assessed_at DESC, f.id DESC
                 """;
         List<FineRecord> records = new ArrayList<>();
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
@@ -55,7 +59,7 @@ public final class FineDAO {
     }
 
     public static void markPaid(Connection connection, long fineId) throws SQLException {
-        String sql = "UPDATE fines SET status = 'PAID', paid_at = NOW() WHERE fine_id = ? AND status = 'UNPAID'";
+        String sql = "UPDATE fines SET status = 'PAID', paid_at = NOW() WHERE id = ? AND status = 'UNPAID'";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setLong(1, fineId);
             if (ps.executeUpdate() != 1) throw new SQLException("Denda tidak ditemukan atau sudah dibayar.");

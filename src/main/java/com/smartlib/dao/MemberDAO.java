@@ -166,24 +166,23 @@ public class MemberDAO {
     }
 
     // ---------- relasi transaksi peminjaman ----------
-    // Tabel loans mengacu ke akun login (users), bukan ke members. Karena itu riwayat peminjaman
-    // seorang anggota dicari lewat members.user_id. Anggota tanpa akun login tidak mungkin punya pinjaman.
+    // Riwayat peminjaman seorang anggota dicari lewat members.id (member_id) atau members.user_id.
 
     /** Jumlah seluruh transaksi peminjaman anggota (riwayat). 0 bila belum ada tabel loans / akun. */
     public int countLoans(int memberId) {
-        return countLoans("SELECT COUNT(*) FROM loans l JOIN members m ON m.user_id = l.user_id WHERE m.id = ?",
+        return countLoans("SELECT COUNT(*) FROM loans l JOIN members m ON (m.id = l.member_id OR m.user_id = l.user_id) WHERE m.id = ?",
                 memberId);
     }
 
     /** Jumlah peminjaman yang masih berjalan (belum dikembalikan). */
     public int countActiveLoans(int memberId) {
-        return countLoans("SELECT COUNT(*) FROM loans l JOIN members m ON m.user_id = l.user_id "
+        return countLoans("SELECT COUNT(*) FROM loans l JOIN members m ON (m.id = l.member_id OR m.user_id = l.user_id) "
                 + "WHERE m.id = ? AND l.status = 'ACTIVE'", memberId);
     }
 
     private int countLoans(String sql, int memberId) {
         try (Connection c = DatabaseConnection.getConnection()) {
-            if (!SchemaInspector.columnExists(c, "loans", "user_id")) return 0;
+            if (!SchemaInspector.columnExists(c, "loans", "user_id") && !SchemaInspector.columnExists(c, "loans", "member_id")) return 0;
             try (PreparedStatement ps = c.prepareStatement(sql)) {
                 ps.setInt(1, memberId);
                 try (ResultSet rs = ps.executeQuery()) {

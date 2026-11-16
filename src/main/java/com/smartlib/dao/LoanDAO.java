@@ -3,6 +3,10 @@ package com.smartlib.dao;
 import java.sql.*;
 import java.time.LocalDate;
 
+/**
+ * Akses database transaksi peminjaman dan pengembalian (tabel loans dan loan_items).
+ * Diselaraskan dengan skema database SmartLib dan PRD.
+ */
 public final class LoanDAO {
     private LoanDAO() {
     }
@@ -14,10 +18,10 @@ public final class LoanDAO {
 
     public static MemberData lockAndValidateMember(Connection connection, long memberId) throws SQLException {
         String sql = """
-                SELECT m.valid_until, u.account_status
+                SELECT m.valid_until, COALESCE(u.status, m.status) AS account_status
                 FROM members m
-                JOIN users u ON u.user_id = m.user_id
-                WHERE m.member_id = ?
+                LEFT JOIN users u ON u.id = m.user_id
+                WHERE m.id = ?
                 FOR UPDATE
                 """;
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
@@ -41,10 +45,10 @@ public final class LoanDAO {
 
     public static MemberData validateProcessor(Connection connection, long userId) throws SQLException {
         String sql = """
-                SELECT u.account_status, r.role_name
+                SELECT u.status AS account_status, r.name AS role_name
                 FROM users u
-                JOIN roles r ON r.role_id = u.role_id
-                WHERE u.user_id = ?
+                JOIN roles r ON r.id = u.role_id
+                WHERE u.id = ?
                 FOR UPDATE
                 """;
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
@@ -69,7 +73,7 @@ public final class LoanDAO {
         String sql = """
                 SELECT COUNT(*)
                 FROM loans l
-                JOIN loan_items li ON li.loan_id = l.loan_id
+                JOIN loan_items li ON li.loan_id = l.id
                 WHERE l.member_id = ? AND li.status = 'BORROWED'
                 """;
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
@@ -86,8 +90,8 @@ public final class LoanDAO {
                 SELECT EXISTS(
                     SELECT 1
                     FROM fines f
-                    JOIN loan_items li ON li.loan_item_id = f.loan_item_id
-                    JOIN loans l ON l.loan_id = li.loan_id
+                    JOIN loan_items li ON li.id = f.loan_item_id
+                    JOIN loans l ON l.id = li.loan_id
                     WHERE l.member_id = ? AND f.status = 'UNPAID'
                 )
                 """;
@@ -102,10 +106,10 @@ public final class LoanDAO {
 
     public static CopyData lockCopy(Connection connection, long copyId) throws SQLException {
         String sql = """
-                SELECT c.copy_id, c.item_id, c.availability_status, i.title
+                SELECT c.id AS copy_id, c.item_id, c.status AS availability_status, i.title
                 FROM item_copies c
-                JOIN library_items i ON i.item_id = c.item_id
-                WHERE c.copy_id = ?
+                JOIN library_items i ON i.id = c.item_id
+                WHERE c.id = ?
                 FOR UPDATE
                 """;
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
@@ -152,7 +156,7 @@ public final class LoanDAO {
 
     public static boolean changeCopyStatus(Connection connection, long copyId, String expected, String target)
             throws SQLException {
-        String sql = "UPDATE item_copies SET availability_status = ? WHERE copy_id = ? AND availability_status = ?";
+        String sql = "UPDATE item_copies SET status = ? WHERE id = ? AND status = ?";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setString(1, target);
             ps.setLong(2, copyId);
@@ -163,12 +167,12 @@ public final class LoanDAO {
 
     public static LoanItemData lockLoanItemForReturn(Connection connection, long loanItemId) throws SQLException {
         String sql = """
-                SELECT li.loan_item_id, li.loan_id, li.copy_id, l.member_id,
+                SELECT li.id AS loan_item_id, li.loan_id, li.copy_id, l.member_id,
                        c.item_id, li.due_date, li.status
                 FROM loan_items li
-                JOIN loans l ON l.loan_id = li.loan_id
-                JOIN item_copies c ON c.copy_id = li.copy_id
-                WHERE li.loan_item_id = ?
+                JOIN loans l ON l.id = li.loan_id
+                JOIN item_copies c ON c.id = li.copy_id
+                WHERE li.id = ?
                 FOR UPDATE
                 """;
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
@@ -187,7 +191,7 @@ public final class LoanDAO {
 
     public static void markLoanItemReturned(Connection connection, long loanItemId, LocalDate returnDate)
             throws SQLException {
-        String sql = "UPDATE loan_items SET returned_at = ?, status = 'RETURNED' WHERE loan_item_id = ? AND status = 'BORROWED'";
+        String sql = "UPDATE loan_items SET returned_at = ?, status = 'RETURNED' WHERE id = ? AND status = 'BORROWED'";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setDate(1, Date.valueOf(returnDate));
             ps.setLong(2, loanItemId);
@@ -199,7 +203,7 @@ public final class LoanDAO {
         String sql = """
                 UPDATE loans
                 SET status = 'COMPLETED'
-                WHERE loan_id = ?
+                WHERE id = ?
                   AND NOT EXISTS (
                     SELECT 1 FROM loan_items
                     WHERE loan_id = ? AND status = 'BORROWED'

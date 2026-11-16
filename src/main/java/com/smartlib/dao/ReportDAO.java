@@ -52,10 +52,11 @@ public class ReportDAO {
      */
     public List<Object[]> overdueLoansReport() {
         String sql =
-            "SELECT u.username, li.title, l.due_date, " +
+            "SELECT COALESCE(u.username, m.member_code) AS username, li.title, l.due_date, " +
             "       DATEDIFF(CURDATE(), l.due_date) AS overdue_days " +
             "FROM loans l " +
-            "JOIN users u ON u.id = l.user_id " +
+            "LEFT JOIN users u ON u.id = l.user_id " +
+            "LEFT JOIN members m ON m.id = l.member_id " +
             "JOIN book_copies bc ON bc.id = l.copy_id " +
             "JOIN library_items li ON li.id = bc.item_id " +
             "WHERE l.status = 'ACTIVE' AND l.due_date < CURDATE() " +
