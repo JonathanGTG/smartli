@@ -39,6 +39,14 @@ public final class DashboardRouter {
             addMenu(menu, "Kelola Pengguna", user.hasPermission(Permission.MANAGE_USERS), () -> {
                 new UserManagementFrame().setVisible(true);
             });
+            addMenu(menu, "Kelola Akun Saya", true, () -> {
+                new ManageAccountFrame(() -> {
+                    AuthService.getInstance().getCurrentUser().ifPresent(u -> {
+                        welcome.setText("<html><b>Selamat datang, " + escape(u.getFullName())
+                                + "</b><br>Role: " + u.getRole().getLabel() + "</html>");
+                    });
+                }).setVisible(true);
+            });
             frame.add(menu, BorderLayout.CENTER);
 
             JButton logout = new JButton("Logout");
@@ -49,7 +57,7 @@ public final class DashboardRouter {
             });
             frame.add(logout, BorderLayout.SOUTH);
 
-            frame.setSize(380, 460);
+            frame.setSize(380, 510);
             frame.setLocationRelativeTo(null);
             frame.setVisible(true);
         });

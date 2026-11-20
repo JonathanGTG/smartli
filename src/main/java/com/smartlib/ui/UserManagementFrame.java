@@ -18,7 +18,7 @@ public class UserManagementFrame extends JFrame {
 
     private final AuthService authService = AuthService.getInstance();
     private final DefaultTableModel tableModel = new DefaultTableModel(
-            new String[]{"ID", "Username", "Nama Lengkap", "Role", "Status"}, 0) {
+            new String[]{"ID", "Username", "NIM", "Nama Lengkap", "Program Studi", "Email", "Role", "Status"}, 0) {
         @Override public boolean isCellEditable(int row, int column) { return false; }
     };
     private final JTable table = new JTable(tableModel);
@@ -41,7 +41,7 @@ public class UserManagementFrame extends JFrame {
 
         add(buttons, BorderLayout.NORTH);
         add(new JScrollPane(table), BorderLayout.CENTER);
-        setSize(720, 420);
+        setSize(880, 460);
         setLocationRelativeTo(null);
         reload();
     }
@@ -57,8 +57,16 @@ public class UserManagementFrame extends JFrame {
             users = authService.listUsers();
             tableModel.setRowCount(0);
             for (User u : users) {
-                tableModel.addRow(new Object[]{u.getId(), u.getUsername(), u.getFullName(),
-                        u.getRole().getLabel(), u.getStatus().getLabel()});
+                tableModel.addRow(new Object[]{
+                        u.getId(),
+                        u.getUsername(),
+                        u.getNim() != null ? u.getNim() : "-",
+                        u.getFullName(),
+                        u.getStudyProgram() != null ? u.getStudyProgram() : "-",
+                        u.getEmail() != null ? u.getEmail() : "-",
+                        u.getRole().getLabel(),
+                        u.getStatus().getLabel()
+                });
             }
         });
     }
@@ -74,17 +82,29 @@ public class UserManagementFrame extends JFrame {
 
     private void onAdd() {
         JTextField tfUser = new JTextField(18);
+        JTextField tfNim = new JTextField(18);
         JTextField tfName = new JTextField(18);
+        JTextField tfProdi = new JTextField(18);
+        JTextField tfEmail = new JTextField(18);
         JPasswordField pfPass = new JPasswordField(18);
         JComboBox<Role> cbRole = new JComboBox<>(Role.values());
-        JPanel form = form("Username", tfUser, "Nama lengkap", tfName, "Password", pfPass, "Role", cbRole);
+        JPanel form = form(
+                "Username *", tfUser,
+                "NIM", tfNim,
+                "Nama lengkap *", tfName,
+                "Program Studi", tfProdi,
+                "Email", tfEmail,
+                "Password *", pfPass,
+                "Role *", cbRole
+        );
 
         if (JOptionPane.showConfirmDialog(this, form, "Tambah Pengguna",
                 JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE) != JOptionPane.OK_OPTION) return;
         char[] pass = pfPass.getPassword();
         try {
             run(() -> {
-                authService.createUser(tfUser.getText(), tfName.getText(), pass, (Role) cbRole.getSelectedItem());
+                authService.createUser(tfUser.getText(), tfName.getText(), pass,
+                        (Role) cbRole.getSelectedItem(), tfNim.getText(), tfProdi.getText(), tfEmail.getText());
                 reload();
             });
         } finally {
@@ -95,15 +115,26 @@ public class UserManagementFrame extends JFrame {
     private void onEdit() {
         User u = selected();
         if (u == null) return;
+        JTextField tfNim = new JTextField(u.getNim() != null ? u.getNim() : "", 18);
         JTextField tfName = new JTextField(u.getFullName(), 18);
+        JTextField tfProdi = new JTextField(u.getStudyProgram() != null ? u.getStudyProgram() : "", 18);
+        JTextField tfEmail = new JTextField(u.getEmail() != null ? u.getEmail() : "", 18);
         JComboBox<Role> cbRole = new JComboBox<>(Role.values());
         cbRole.setSelectedItem(u.getRole());
-        JPanel form = form("Username", new JLabel(u.getUsername()), "Nama lengkap", tfName, "Role", cbRole);
+        JPanel form = form(
+                "Username", new JLabel(u.getUsername()),
+                "NIM", tfNim,
+                "Nama lengkap *", tfName,
+                "Program Studi", tfProdi,
+                "Email", tfEmail,
+                "Role *", cbRole
+        );
 
         if (JOptionPane.showConfirmDialog(this, form, "Ubah Pengguna",
                 JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE) != JOptionPane.OK_OPTION) return;
         run(() -> {
-            authService.updateUser(u.getId(), tfName.getText(), (Role) cbRole.getSelectedItem());
+            authService.updateUser(u.getId(), tfName.getText(), (Role) cbRole.getSelectedItem(),
+                    tfNim.getText(), tfProdi.getText(), tfEmail.getText());
             reload();
         });
     }

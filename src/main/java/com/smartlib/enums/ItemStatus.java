@@ -1,6 +1,5 @@
 package com.smartlib.enums;
 
-/
 public enum ItemStatus {
     AVAILABLE("Tersedia", true),
     BORROWED("Dipinjam", false),

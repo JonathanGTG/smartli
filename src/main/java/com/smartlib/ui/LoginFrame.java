@@ -17,6 +17,7 @@ public class LoginFrame extends JFrame {
     private final JTextField txtUsername = new JTextField(20);
     private final JPasswordField txtPassword = new JPasswordField(20);
     private final JButton btnLogin = new JButton("Login");
+    private final JButton btnRegister = new JButton("Daftar Akun Anggota");
     private final JLabel lblMessage = new JLabel(" ");
 
     public LoginFrame() {
@@ -51,11 +52,28 @@ public class LoginFrame extends JFrame {
         lblMessage.setForeground(new Color(0xB00020));
         lblMessage.setHorizontalAlignment(SwingConstants.CENTER);
         gc.gridy = 4; gc.gridx = 0; gc.gridwidth = 2; panel.add(lblMessage, gc);
-        gc.gridy = 5; panel.add(btnLogin, gc);
+
+        JPanel btnPanel = new JPanel(new GridLayout(1, 2, 8, 0));
+        btnPanel.add(btnLogin);
+        btnPanel.add(btnRegister);
+
+        gc.gridy = 5; panel.add(btnPanel, gc);
 
         setContentPane(panel);
         getRootPane().setDefaultButton(btnLogin);   // tekan Enter = login
         btnLogin.addActionListener(e -> doLogin());
+        btnRegister.addActionListener(e -> openRegister());
+    }
+
+    private void openRegister() {
+        new RegisterFrame(this).setVisible(true);
+        setVisible(false);
+    }
+
+    public void setPrefilledUsername(String username) {
+        txtUsername.setText(username);
+        txtPassword.setText("");
+        txtPassword.requestFocusInWindow();
     }
 
     private void doLogin() {
@@ -101,6 +119,7 @@ public class LoginFrame extends JFrame {
 
     private void setBusy(boolean busy) {
         btnLogin.setEnabled(!busy);
+        btnRegister.setEnabled(!busy);
         txtUsername.setEnabled(!busy);
         txtPassword.setEnabled(!busy);
         if (busy) lblMessage.setText(" ");
