@@ -24,24 +24,64 @@ class AuthServiceTest {
         int nextId = 1;
 
         User add(String username, String password, Role role, AccountStatus status) {
+            return add(username, password, role, status, null, null, null);
+        }
+
+        User add(String username, String password, Role role, AccountStatus status,
+                 String nim, String studyProgram, String email) {
             User u = new User(nextId, username, PasswordHasher.hash(password.toCharArray()),
-                    username, role, status);
+                    username, role, status, nim, studyProgram, email);
             data.put(nextId++, u);
             return u;
         }
 
         @Override public Optional<User> findByUsername(String n) {
-            return data.values().stream().filter(u -> u.getUsername().equals(n)).findFirst();
+            return data.values().stream().filter(u -> u.getUsername().equalsIgnoreCase(n)).findFirst();
         }
         @Override public Optional<User> findById(int id) { return Optional.ofNullable(data.get(id)); }
+        @Override public Optional<User> findByNim(String nim) {
+            if (nim == null || nim.isBlank()) return Optional.empty();
+            return data.values().stream().filter(u -> nim.equalsIgnoreCase(u.getNim())).findFirst();
+        }
+        @Override public Optional<User> findByEmail(String email) {
+            if (email == null || email.isBlank()) return Optional.empty();
+            return data.values().stream().filter(u -> email.equalsIgnoreCase(u.getEmail())).findFirst();
+        }
+        @Override public boolean existsByUsername(String n) { return findByUsername(n).isPresent(); }
+        @Override public boolean existsByNim(String nim) { return findByNim(nim).isPresent(); }
+        @Override public boolean existsByEmail(String email) { return findByEmail(email).isPresent(); }
+
         @Override public List<User> findAll() { return new ArrayList<>(data.values()); }
         @Override public int insert(User u) {
-            User saved = new User(nextId, u.getUsername(), u.getPasswordHash(), u.getFullName(), u.getRole(), u.getStatus());
+            User saved = new User(nextId, u.getUsername(), u.getPasswordHash(), u.getFullName(),
+                    u.getRole(), u.getStatus(), u.getNim(), u.getStudyProgram(), u.getEmail());
             data.put(nextId, saved);
             return nextId++;
         }
         @Override public void update(int id, String name, Role role) {
-            User u = data.get(id); u.setFullName(name); u.setRole(role);
+            User u = data.get(id);
+            if (u != null) {
+                u.setFullName(name);
+                u.setRole(role);
+            }
+        }
+        @Override public void update(int id, String name, Role role, String nim, String studyProgram, String email) {
+            User u = data.get(id);
+            if (u != null) {
+                u.setFullName(name);
+                u.setRole(role);
+                u.setNim(nim);
+                u.setStudyProgram(studyProgram);
+                u.setEmail(email);
+            }
+        }
+        @Override public void updateProfile(int id, String name, String studyProgram, String email) {
+            User u = data.get(id);
+            if (u != null) {
+                u.setFullName(name);
+                u.setStudyProgram(studyProgram);
+                u.setEmail(email);
+            }
         }
         @Override public void updateStatus(int id, AccountStatus s) { data.get(id).setStatus(s); }
         @Override public void updatePasswordHash(int id, String h) { data.get(id).setPasswordHash(h); }
@@ -208,5 +248,181 @@ class AuthServiceTest {
         assertThrows(AuthenticationException.class,
                 () -> service.login("anggota1", "Anggota#123".toCharArray()));
         assertNotNull(service.login("anggota1", "PasswordBaru1".toCharArray()));
+    }
+
+    // ---------- Registrasi Mandiri Anggota Perpustakaan ----------
+
+    @Test
+    void registrasiAnggotaMandiriBerhasil() {
+        User registered = service.registerMember(
+                "211401001",
+                "Budi Pratama",
+                "Teknik Informatika",
+                "budi.pratama@smartlib.ac.id",
+                "budi_p",
+                "Budi#12345".toCharArray()
+        );
+
+        assertNotNull(registered);
+        assertEquals("budi_p", registered.getUsername());
+        assertEquals("Budi Pratama", registered.getFullName());
+        assertEquals("211401001", registered.getNim());
+        assertEquals("Teknik Informatika", registered.getStudyProgram());
+        assertEquals("budi.pratama@smartlib.ac.id", registered.getEmail());
+        assertEquals(Role.ANGGOTA, registered.getRole());
+        assertEquals(AccountStatus.ACTIVE, registered.getStatus());
+
+        // Login menggunakan akun yang baru terdaftar
+        User loggedIn = service.login("budi_p", "Budi#12345".toCharArray());
+        assertEquals("Budi Pratama", loggedIn.getFullName());
+        assertEquals("211401001", loggedIn.getNim());
+    }
+
+    @Test
+    void registrasiAnggotaDenganUsernameDefaultDariNim() {
+        User registered = service.registerMember(
+                "211402002",
+                "Siti Rahma",
+                "Sistem Informasi",
+                "siti@smartlib.ac.id",
+                "Siti#12345".toCharArray()
+        );
+
+        assertEquals("211402002", registered.getUsername());
+        assertEquals("211402002", registered.getNim());
+
+        User loggedIn = service.login("211402002", "Siti#12345".toCharArray());
+        assertEquals("Siti Rahma", loggedIn.getFullName());
+    }
+
+    @Test
+    void registrasiAnggotaNimDuplikatDitolak() {
+        service.registerMember("211401001", "Budi Pratama", "Teknik Informatika",
+                "budi@smartlib.ac.id", "Budi#12345".toCharArray());
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
+                service.registerMember("211401001", "Budi Lain", "Teknik Informatika",
+                        "budi2@smartlib.ac.id", "Budi#12345".toCharArray()));
+        assertTrue(ex.getMessage().contains("NIM '211401001' sudah terdaftar"));
+    }
+
+    @Test
+    void registrasiAnggotaEmailTidakValidAtauDuplikatDitolak() {
+        // Email tidak valid formatnya
+        assertThrows(IllegalArgumentException.class, () ->
+                service.registerMember("211401003", "Nama User", "Teknik Elektro",
+                        "email-salah", "Password123".toCharArray()));
+
+        // Email sudah terdaftar
+        service.registerMember("211401004", "User A", "Teknik Elektro",
+                "usera@smartlib.ac.id", "Password123".toCharArray());
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
+                service.registerMember("211401005", "User B", "Teknik Elektro",
+                        "usera@smartlib.ac.id", "Password123".toCharArray()));
+        assertTrue(ex.getMessage().contains("Email 'usera@smartlib.ac.id' sudah terdaftar"));
+    }
+
+    @Test
+    void registrasiAnggotaValidasiInputLainnya() {
+        // NIM kosong
+        assertThrows(IllegalArgumentException.class, () ->
+                service.registerMember("", "Nama", "Prodi", "email@mail.com", "Password123".toCharArray()));
+
+        // Nama kosong
+        assertThrows(IllegalArgumentException.class, () ->
+                service.registerMember("211401099", "", "Prodi", "email@mail.com", "Password123".toCharArray()));
+
+        // Prodi kosong
+        assertThrows(IllegalArgumentException.class, () ->
+                service.registerMember("211401099", "Nama", " ", "email@mail.com", "Password123".toCharArray()));
+
+        // Password kurang dari 8 karakter
+        assertThrows(IllegalArgumentException.class, () ->
+                service.registerMember("211401099", "Nama", "Prodi", "email@mail.com", "pendek".toCharArray()));
+    }
+
+    // ---------- Kelola Akun Saya (Self-Service) ----------
+
+    @Test
+    void kelolaAkunPerbaruiProfilSendiri() {
+        User registered = service.registerMember("211401010", "Dedi Siregar", "Ilmu Komputer",
+                "dedi@smartlib.ac.id", "Dedi#12345".toCharArray());
+
+        service.login(registered.getUsername(), "Dedi#12345".toCharArray());
+
+        // Update profil
+        User updated = service.updateMyProfile("Dedi Siregar S.Kom", "Sistem Informasi", "dedi.baru@smartlib.ac.id");
+        assertEquals("Dedi Siregar S.Kom", updated.getFullName());
+        assertEquals("Sistem Informasi", updated.getStudyProgram());
+        assertEquals("dedi.baru@smartlib.ac.id", updated.getEmail());
+
+        // Cek bahwa currentUser dan DAO sama-sama terupdate
+        User current = service.getCurrentUser().orElseThrow();
+        assertEquals("Dedi Siregar S.Kom", current.getFullName());
+        assertEquals("dedi.baru@smartlib.ac.id", current.getEmail());
+
+        User fromDao = dao.findById(registered.getId()).orElseThrow();
+        assertEquals("Dedi Siregar S.Kom", fromDao.getFullName());
+        assertEquals("dedi.baru@smartlib.ac.id", fromDao.getEmail());
+    }
+
+    @Test
+    void kelolaAkunGantiPassword() {
+        User registered = service.registerMember("211401020", "Rina Marlina", "Akuntansi",
+                "rina@smartlib.ac.id", "Rina#12345".toCharArray());
+
+        service.login(registered.getUsername(), "Rina#12345".toCharArray());
+
+        // Password lama salah
+        assertThrows(AuthenticationException.class, () ->
+                service.changePassword("Salah#123".toCharArray(), "RinaBaru#999".toCharArray()));
+
+        // Password baru terlalu pendek
+        assertThrows(IllegalArgumentException.class, () ->
+                service.changePassword("Rina#12345".toCharArray(), "pendek".toCharArray()));
+
+        // Ganti password berhasil
+        service.changePassword("Rina#12345".toCharArray(), "RinaBaru#999".toCharArray());
+
+        service.logout();
+
+        // Login dengan password lama gagal
+        assertThrows(AuthenticationException.class, () ->
+                service.login(registered.getUsername(), "Rina#12345".toCharArray()));
+
+        // Login dengan password baru sukses
+        User loggedIn = service.login(registered.getUsername(), "RinaBaru#999".toCharArray());
+        assertEquals("Rina Marlina", loggedIn.getFullName());
+    }
+
+    @Test
+    void kelolaAkunTanpaLoginDitolak() {
+        service.logout();
+        assertThrows(AuthenticationException.class, () ->
+                service.updateMyProfile("Nama", "Prodi", "test@smartlib.ac.id"));
+        assertThrows(AuthenticationException.class, () ->
+                service.changePassword("pass1".toCharArray(), "pass2".toCharArray()));
+    }
+
+    @Test
+    void adminBuatDanUbahUserDenganDataMahasiswa() {
+        service.login("admin", "Admin#123".toCharArray());
+
+        User mhs = service.createUser("mhs_baru", "Mahasiswa Baru", "Password123".toCharArray(),
+                Role.ANGGOTA, "211401099", "Manajemen", "mhs@smartlib.ac.id");
+
+        assertEquals("211401099", mhs.getNim());
+        assertEquals("Manajemen", mhs.getStudyProgram());
+        assertEquals("mhs@smartlib.ac.id", mhs.getEmail());
+
+        // Admin mengubah data mahasiswa
+        service.updateUser(mhs.getId(), "Mahasiswa Baru Edit", Role.ANGGOTA,
+                "211401099", "Ilmu Komunikasi", "mhs.edit@smartlib.ac.id");
+
+        User updatedMhs = dao.findById(mhs.getId()).orElseThrow();
+        assertEquals("Mahasiswa Baru Edit", updatedMhs.getFullName());
+        assertEquals("Ilmu Komunikasi", updatedMhs.getStudyProgram());
+        assertEquals("mhs.edit@smartlib.ac.id", updatedMhs.getEmail());
     }
 }
