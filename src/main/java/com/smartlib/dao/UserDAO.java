@@ -19,7 +19,8 @@ import java.util.Optional;
 public class UserDAO {
 
     private static final String SELECT_USER =
-            "SELECT u.id, u.username, u.password_hash, u.full_name, u.status, r.name AS role_name "
+            "SELECT u.id, u.username, u.password_hash, u.full_name, u.status, "
+          + "u.nim, u.study_program, u.email, r.name AS role_name "
           + "FROM users u JOIN roles r ON r.id = u.role_id ";
 
     public Optional<User> findByUsername(String username) {
@@ -28,6 +29,16 @@ public class UserDAO {
 
     public Optional<User> findById(int id) {
         return findOne(SELECT_USER + "WHERE u.id = ?", id);
+    }
+
+    public Optional<User> findByNim(String nim) {
+        if (nim == null || nim.isBlank()) return Optional.empty();
+        return findOne(SELECT_USER + "WHERE u.nim = ?", nim.trim());
+    }
+
+    public Optional<User> findByEmail(String email) {
+        if (email == null || email.isBlank()) return Optional.empty();
+        return findOne(SELECT_USER + "WHERE LOWER(u.email) = ?", email.trim().toLowerCase());
     }
 
     public List<User> findAll() {
@@ -47,10 +58,18 @@ public class UserDAO {
         return findByUsername(username).isPresent();
     }
 
+    public boolean existsByNim(String nim) {
+        return findByNim(nim).isPresent();
+    }
+
+    public boolean existsByEmail(String email) {
+        return findByEmail(email).isPresent();
+    }
+
     /** Menyimpan akun baru dan mengembalikan ID yang dibuat database. */
     public int insert(User user) {
-        String sql = "INSERT INTO users (username, password_hash, full_name, role_id, status) "
-                   + "VALUES (?, ?, ?, (SELECT id FROM roles WHERE name = ?), ?)";
+        String sql = "INSERT INTO users (username, password_hash, full_name, role_id, status, nim, study_program, email) "
+                   + "VALUES (?, ?, ?, (SELECT id FROM roles WHERE name = ?), ?, ?, ?, ?)";
         try (Connection c = DatabaseConnection.getConnection();
              PreparedStatement ps = c.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, user.getUsername());
@@ -58,6 +77,9 @@ public class UserDAO {
             ps.setString(3, user.getFullName());
             ps.setString(4, user.getRole().name());
             ps.setString(5, user.getStatus().name());
+            ps.setString(6, user.getNim());
+            ps.setString(7, user.getStudyProgram());
+            ps.setString(8, user.getEmail());
             ps.executeUpdate();
             try (ResultSet keys = ps.getGeneratedKeys()) {
                 if (keys.next()) return keys.getInt(1);
@@ -71,6 +93,17 @@ public class UserDAO {
     public void update(int id, String fullName, Role role) {
         execute("UPDATE users SET full_name = ?, role_id = (SELECT id FROM roles WHERE name = ?) WHERE id = ?",
                 "Gagal mengubah pengguna.", fullName, role.name(), id);
+    }
+
+    public void update(int id, String fullName, Role role, String nim, String studyProgram, String email) {
+        execute("UPDATE users SET full_name = ?, role_id = (SELECT id FROM roles WHERE name = ?), "
+              + "nim = ?, study_program = ?, email = ? WHERE id = ?",
+                "Gagal mengubah pengguna.", fullName, role.name(), nim, studyProgram, email, id);
+    }
+
+    public void updateProfile(int id, String fullName, String studyProgram, String email) {
+        execute("UPDATE users SET full_name = ?, study_program = ?, email = ? WHERE id = ?",
+                "Gagal mengubah profil pengguna.", fullName, studyProgram, email, id);
     }
 
     public void updateStatus(int id, AccountStatus status) {
@@ -131,6 +164,17 @@ public class UserDAO {
                 rs.getString("password_hash"),
                 rs.getString("full_name"),
                 Role.fromDatabase(rs.getString("role_name")),
-                AccountStatus.fromDatabase(rs.getString("status")));
+                AccountStatus.fromDatabase(rs.getString("status")),
+                getNullableString(rs, "nim"),
+                getNullableString(rs, "study_program"),
+                getNullableString(rs, "email"));
+    }
+
+    private String getNullableString(ResultSet rs, String column) {
+        try {
+            return rs.getString(column);
+        } catch (SQLException ignored) {
+            return null;
+        }
     }
 }
