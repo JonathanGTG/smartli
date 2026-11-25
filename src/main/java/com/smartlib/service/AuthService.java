@@ -81,8 +81,6 @@ public class AuthService {
 
     public Optional<User> getCurrentUser() { return Optional.ofNullable(currentUser); }
 
-    // ================= RBAC =================
-
     public User requireLogin() {
         User user = currentUser;
         if (user == null) throw new AuthenticationException("Silakan login terlebih dahulu.");
@@ -106,8 +104,6 @@ public class AuthService {
         }
         return user;
     }
-
-    // ================= Registrasi Anggota Mandiri =================
 
     public User registerMember(String nim, String fullName, String studyProgram, String email,
                                String username, char[] password) {
