@@ -21,6 +21,8 @@ import java.util.regex.Pattern;
 public class AuthService {
 
     private static final Pattern USERNAME_RULE = Pattern.compile("^[a-zA-Z0-9_.]{4,30}$");
+    private static final Pattern NIM_RULE = Pattern.compile("^[a-zA-Z0-9.-]{4,30}$");
+    private static final Pattern EMAIL_RULE = Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
     private static final int MIN_PASSWORD_LENGTH = 8;
     private static final String LOGIN_FAILED = "Username atau password salah.";
     /** Dipakai agar waktu respons sama ketika username tidak ditemukan. */
@@ -102,6 +104,91 @@ public class AuthService {
         return user;
     }
 
+    // ================= Registrasi Anggota Mandiri =================
+
+    public User registerMember(String nim, String fullName, String studyProgram, String email,
+                               String username, char[] password) {
+        String cleanNim = validateNim(nim);
+        if (userDAO.existsByNim(cleanNim)) {
+            throw new IllegalArgumentException("NIM '" + cleanNim + "' sudah terdaftar.");
+        }
+
+        if (fullName == null || fullName.trim().isBlank()) {
+            throw new IllegalArgumentException("Nama lengkap tidak boleh kosong.");
+        }
+        if (fullName.trim().length() < 2) {
+            throw new IllegalArgumentException("Nama lengkap minimal 2 karakter.");
+        }
+
+        if (studyProgram == null || studyProgram.trim().isBlank()) {
+            throw new IllegalArgumentException("Program studi tidak boleh kosong.");
+        }
+
+        String cleanEmail = validateEmail(email);
+        if (userDAO.existsByEmail(cleanEmail)) {
+            throw new IllegalArgumentException("Email '" + cleanEmail + "' sudah terdaftar.");
+        }
+
+        String rawUsername = (username == null || username.isBlank()) ? cleanNim : username.trim();
+        String uname = validateUsername(rawUsername);
+        if (userDAO.existsByUsername(uname)) {
+            throw new IllegalArgumentException("Username '" + uname + "' sudah dipakai.");
+        }
+
+        validatePassword(password);
+
+        User newUser = new User(0, uname, PasswordHasher.hash(password), fullName.trim(),
+                Role.ANGGOTA, AccountStatus.ACTIVE, cleanNim, studyProgram.trim(), cleanEmail);
+        int id = userDAO.insert(newUser);
+        return new User(id, newUser.getUsername(), newUser.getPasswordHash(), newUser.getFullName(),
+                newUser.getRole(), newUser.getStatus(), newUser.getNim(), newUser.getStudyProgram(), newUser.getEmail());
+    }
+
+    public User registerMember(String nim, String fullName, String studyProgram, String email, char[] password) {
+        return registerMember(nim, fullName, studyProgram, email, null, password);
+    }
+
+    // ================= Kelola Akun Saya (Self-Service) =================
+
+    public User updateMyProfile(String fullName, String studyProgram, String email) {
+        User user = requireLogin();
+        if (fullName == null || fullName.trim().isBlank()) {
+            throw new IllegalArgumentException("Nama lengkap tidak boleh kosong.");
+        }
+        if (fullName.trim().length() < 2) {
+            throw new IllegalArgumentException("Nama lengkap minimal 2 karakter.");
+        }
+
+        String cleanProdi = (studyProgram == null || studyProgram.trim().isBlank())
+                ? user.getStudyProgram() : studyProgram.trim();
+
+        String cleanEmail = validateEmail(email);
+        Optional<User> existingEmailUser = userDAO.findByEmail(cleanEmail);
+        if (existingEmailUser.isPresent() && existingEmailUser.get().getId() != user.getId()) {
+            throw new IllegalArgumentException("Email '" + cleanEmail + "' sudah digunakan oleh akun lain.");
+        }
+
+        userDAO.updateProfile(user.getId(), fullName.trim(), cleanProdi, cleanEmail);
+        user.setFullName(fullName.trim());
+        user.setStudyProgram(cleanProdi);
+        user.setEmail(cleanEmail);
+        return user;
+    }
+
+    public void changePassword(char[] oldPassword, char[] newPassword) {
+        User user = requireLogin();
+        if (oldPassword == null || oldPassword.length == 0) {
+            throw new AuthenticationException("Password saat ini tidak boleh kosong.");
+        }
+        if (!PasswordHasher.verify(oldPassword, user.getPasswordHash())) {
+            throw new AuthenticationException("Password saat ini salah.");
+        }
+        validatePassword(newPassword);
+        String newHash = PasswordHasher.hash(newPassword);
+        userDAO.updatePasswordHash(user.getId(), newHash);
+        user.setPasswordHash(newHash);
+    }
+
     // ================= Manajemen akun (khusus Admin) =================
 
     public List<User> listUsers() {
@@ -109,20 +196,40 @@ public class AuthService {
         return userDAO.findAll();
     }
 
-    public User createUser(String username, String fullName, char[] password, Role role) {
+    public User createUser(String username, String fullName, char[] password, Role role,
+                           String nim, String studyProgram, String email) {
         requirePermission(Permission.MANAGE_USERS);
         String uname = validateUsername(username);
         validatePassword(password);
         if (userDAO.existsByUsername(uname)) {
             throw new IllegalArgumentException("Username '" + uname + "' sudah dipakai.");
         }
-        User user = new User(0, uname, PasswordHasher.hash(password), fullName, role, AccountStatus.ACTIVE);
+
+        String cleanNim = (nim != null && !nim.isBlank()) ? validateNim(nim) : null;
+        if (cleanNim != null && userDAO.existsByNim(cleanNim)) {
+            throw new IllegalArgumentException("NIM '" + cleanNim + "' sudah terdaftar.");
+        }
+
+        String cleanEmail = (email != null && !email.isBlank()) ? validateEmail(email) : null;
+        if (cleanEmail != null && userDAO.existsByEmail(cleanEmail)) {
+            throw new IllegalArgumentException("Email '" + cleanEmail + "' sudah terdaftar.");
+        }
+
+        String cleanProdi = (studyProgram != null && !studyProgram.isBlank()) ? studyProgram.trim() : null;
+
+        User user = new User(0, uname, PasswordHasher.hash(password), fullName.trim(), role,
+                AccountStatus.ACTIVE, cleanNim, cleanProdi, cleanEmail);
         int id = userDAO.insert(user);
         return new User(id, user.getUsername(), user.getPasswordHash(), user.getFullName(),
-                user.getRole(), user.getStatus());
+                user.getRole(), user.getStatus(), user.getNim(), user.getStudyProgram(), user.getEmail());
     }
 
-    public void updateUser(int userId, String fullName, Role role) {
+    public User createUser(String username, String fullName, char[] password, Role role) {
+        return createUser(username, fullName, password, role, null, null, null);
+    }
+
+    public void updateUser(int userId, String fullName, Role role,
+                           String nim, String studyProgram, String email) {
         requirePermission(Permission.MANAGE_USERS);
         User target = findTarget(userId);
         if (fullName == null || fullName.isBlank()) {
@@ -133,7 +240,37 @@ public class AuthService {
                 && userDAO.countActiveAdmins() <= 1) {
             throw new IllegalStateException("Tidak dapat mengubah role Admin aktif terakhir.");
         }
-        userDAO.update(userId, fullName.trim(), role);
+
+        String cleanNim = (nim != null && !nim.isBlank()) ? validateNim(nim) : null;
+        if (cleanNim != null) {
+            Optional<User> foundNim = userDAO.findByNim(cleanNim);
+            if (foundNim.isPresent() && foundNim.get().getId() != userId) {
+                throw new IllegalArgumentException("NIM '" + cleanNim + "' sudah digunakan oleh akun lain.");
+            }
+        }
+
+        String cleanEmail = (email != null && !email.isBlank()) ? validateEmail(email) : null;
+        if (cleanEmail != null) {
+            Optional<User> foundEmail = userDAO.findByEmail(cleanEmail);
+            if (foundEmail.isPresent() && foundEmail.get().getId() != userId) {
+                throw new IllegalArgumentException("Email '" + cleanEmail + "' sudah digunakan oleh akun lain.");
+            }
+        }
+
+        String cleanProdi = (studyProgram != null && !studyProgram.isBlank()) ? studyProgram.trim() : null;
+
+        userDAO.update(userId, fullName.trim(), role, cleanNim, cleanProdi, cleanEmail);
+        if (currentUser != null && currentUser.getId() == userId) {
+            currentUser.setFullName(fullName.trim());
+            currentUser.setRole(role);
+            currentUser.setNim(cleanNim);
+            currentUser.setStudyProgram(cleanProdi);
+            currentUser.setEmail(cleanEmail);
+        }
+    }
+
+    public void updateUser(int userId, String fullName, Role role) {
+        updateUser(userId, fullName, role, null, null, null);
     }
 
     public void setActive(int userId, boolean active) {
@@ -176,5 +313,19 @@ public class AuthService {
         if (password == null || password.length < MIN_PASSWORD_LENGTH) {
             throw new IllegalArgumentException("Password minimal " + MIN_PASSWORD_LENGTH + " karakter.");
         }
+    }
+
+    private String validateNim(String nim) {
+        if (nim == null || !NIM_RULE.matcher(nim.trim()).matches()) {
+            throw new IllegalArgumentException("NIM minimal 4 karakter (hanya huruf, angka, titik, atau strip).");
+        }
+        return nim.trim();
+    }
+
+    private String validateEmail(String email) {
+        if (email == null || !EMAIL_RULE.matcher(email.trim()).matches()) {
+            throw new IllegalArgumentException("Format email tidak valid.");
+        }
+        return email.trim().toLowerCase();
     }
 }

@@ -10,9 +10,17 @@ public class User {
     private String fullName;
     private Role role;
     private AccountStatus status;
+    private String nim;
+    private String studyProgram;
+    private String email;
 
     public User(int id, String username, String passwordHash, String fullName,
                 Role role, AccountStatus status) {
+        this(id, username, passwordHash, fullName, role, status, null, null, null);
+    }
+
+    public User(int id, String username, String passwordHash, String fullName,
+                Role role, AccountStatus status, String nim, String studyProgram, String email) {
         if (id < 0) throw new IllegalArgumentException("ID tidak boleh negatif.");
         this.id = id;
         setUsername(username);
@@ -20,6 +28,9 @@ public class User {
         setFullName(fullName);
         setRole(role);
         setStatus(status);
+        setNim(nim);
+        setStudyProgram(studyProgram);
+        setEmail(email);
     }
 
     public int getId() { return id; }
@@ -28,6 +39,9 @@ public class User {
     public String getFullName() { return fullName; }
     public Role getRole() { return role; }
     public AccountStatus getStatus() { return status; }
+    public String getNim() { return nim; }
+    public String getStudyProgram() { return studyProgram; }
+    public String getEmail() { return email; }
 
     public boolean isActive() { return status == AccountStatus.ACTIVE; }
 
@@ -64,8 +78,21 @@ public class User {
         this.status = status;
     }
 
+    public void setNim(String nim) {
+        this.nim = (nim == null || nim.isBlank()) ? null : nim.trim();
+    }
+
+    public void setStudyProgram(String studyProgram) {
+        this.studyProgram = (studyProgram == null || studyProgram.isBlank()) ? null : studyProgram.trim();
+    }
+
+    public void setEmail(String email) {
+        this.email = (email == null || email.isBlank()) ? null : email.trim().toLowerCase();
+    }
+
     @Override
     public String toString() {   // sengaja tanpa passwordHash
-        return "User{id=" + id + ", username='" + username + "', role=" + role + ", status=" + status + "}";
+        return "User{id=" + id + ", username='" + username + "', role=" + role + ", status=" + status
+                + ", nim='" + nim + "', email='" + email + "'}";
     }
 }
