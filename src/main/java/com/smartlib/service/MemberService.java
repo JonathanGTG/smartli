@@ -9,6 +9,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Aturan bisnis untuk data anggota perpustakaan (hanya role dengan MANAGE_MEMBERS: Admin dan Petugas).
@@ -33,12 +34,17 @@ public class MemberService {
 
     }
 
+
     // ---------- membaca ----------
 
     /** Daftar anggota. keyword kosong = semua; status null = semua status. */
     public List<Member> search(String keyword, AccountStatus status) {
         authService.requirePermission(Permission.MANAGE_MEMBERS);
         return memberDAO.search(keyword, status);
+    }
+
+    public Optional<Member> getMemberByUserId(int userId) {
+        return memberDAO.findByUserId(userId);
     }
 
     public Map<Integer, String> linkedUsernames() {
