@@ -276,6 +276,12 @@ public class DashboardFrame extends JFrame {
                 () -> new UserManagementFrame().setVisible(true)
         );
 
+        addNavButton(
+                panel,
+                "⚙  Aturan Perpustakaan",
+                user.hasPermission(Permission.CHANGE_LOAN_RULES),
+                () -> new PolicyManagementFrame().setVisible(true)
+        );
 
         addNavButton(
                 panel,
