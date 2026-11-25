@@ -702,11 +702,15 @@ public class AuthService {
             email = "";
         }
 
+        String memberCode = (user.getNim() != null && !user.getNim().isBlank())
+                ? user.getNim().trim()
+                : memberDAO.nextMemberCode();
+
         Member newMember = new Member(
-                memberDAO.nextMemberCode(),
+                memberCode,  // <-- Sekarang kode anggota adalah NIM (misal: 251402057)
                 user.getFullName(),
                 email,
-                "",
+               "",
                 "",
                 LocalDate.now()
         );

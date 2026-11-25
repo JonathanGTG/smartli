@@ -139,7 +139,9 @@ public class MemberManagementFrame extends JFrame {
 
     // ------------------------------------------------------------------ form tambah / ubah
 
-    /** Form anggota. existing = null untuk anggota baru. Mengembalikan true bila tersimpan. */
+    /**
+     * Form anggota. existing = null untuk anggota baru. Mengembalikan true bila tersimpan.
+     */
     private boolean showForm(Member existing, String code) {
         Map<Integer, String> usernames = UiKit.call(this, service::linkedUsernames);
         if (usernames == null) return false;
@@ -157,7 +159,7 @@ public class MemberManagementFrame extends JFrame {
         JCheckBox chkAutoUser = new JCheckBox("Buatkan Akun Login Otomatis (Password: SmartLib#123)", existing == null);
 
         JPanel form = UiKit.form(
-                "Kode anggota *", tfCode,
+                "NIM / Kode Anggota *", tfCode,
                 "Nama lengkap *", tfName,
                 "Email", tfEmail,
                 "Telepon", tfPhone,
@@ -181,3 +183,4 @@ public class MemberManagementFrame extends JFrame {
             }
         });
     }
+}

@@ -96,10 +96,10 @@ public class RegisterFrame extends JFrame {
         gc.fill = GridBagConstraints.HORIZONTAL;
 
         int row = 0;
-        addFormRow(form, gc, row++, "NIM *", txtNim, "Contoh: 210001 (minimal 4 karakter)");
+        addFormRow(form, gc, row++, "NIM/NIP *", txtNim, "Contoh: 210001 (minimal 4 karakter)");
         addFormRow(form, gc, row++, "Nama Lengkap *", txtFullName, "Nama lengkap sesuai kartu mahasiswa");
         addFormRow(form, gc, row++, "Program Studi *", cbStudyProgram, "Pilih atau ketik program studi Anda");
-        addFormRow(form, gc, row++, "Email *", txtEmail, "Contoh: nama@mahasiswa.ac.id");
+        addFormRow(form, gc, row++, "Email *", txtEmail, "Contoh: nama@gmail.com");
         addFormRow(form, gc, row++, "Username", txtUsername, "Opsional (otomatis terisi NIM bila kosong)");
         addFormRow(form, gc, row++, "Password *", txtPassword, "Minimal 8 karakter");
         addFormRow(form, gc, row++, "Konfirmasi Password *", txtConfirmPassword, "Ulangi password di atas");
@@ -162,7 +162,7 @@ public class RegisterFrame extends JFrame {
 
         // Validasi awal di UI
         if (nim.isEmpty()) {
-            showError("NIM tidak boleh kosong.");
+            showError("NIM/NIP tidak boleh kosong.");
             txtNim.requestFocusInWindow();
             return;
         }
