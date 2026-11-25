@@ -74,6 +74,7 @@ public class AuthService {
             throw new AuthenticationException("Akun Anda tidak aktif. Hubungi Admin.");
         }
         userDAO.updateLastLogin(user.getId());
+        ensureMemberLinked(user);
         currentUser = user;
         return user;
     }
@@ -142,6 +143,11 @@ public class AuthService {
         User newUser = new User(0, uname, PasswordHasher.hash(password), fullName.trim(),
                 Role.ANGGOTA, AccountStatus.ACTIVE, cleanNim, studyProgram.trim(), cleanEmail);
         int id = userDAO.insert(newUser);
+
+        User saved = new User(id, newUser.getUsername(), newUser.getPasswordHash(), newUser.getFullName(),
+                newUser.getRole(), newUser.getStatus(), newUser.getNim(), newUser.getStudyProgram(), newUser.getEmail());
+        ensureMemberLinked(saved);
+        return saved;
 
         // --- TAMBAHKAN BAGIAN INI ---
         if (memberDAO != null) {
@@ -238,6 +244,10 @@ public class AuthService {
         User user = new User(0, uname, PasswordHasher.hash(password), fullName.trim(), role,
                 AccountStatus.ACTIVE, cleanNim, cleanProdi, cleanEmail);
         int id = userDAO.insert(user);
+        User saved = new User(id, user.getUsername(), user.getPasswordHash(), user.getFullName(),
+                user.getRole(), user.getStatus(), user.getNim(), user.getStudyProgram(), user.getEmail());
+        ensureMemberLinked(saved);
+        return saved;
         return new User(id, user.getUsername(), user.getPasswordHash(), user.getFullName(),
                 user.getRole(), user.getStatus(), user.getNim(), user.getStudyProgram(), user.getEmail());
     }

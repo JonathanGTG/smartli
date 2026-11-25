@@ -45,7 +45,7 @@ public class MemberHistoryFrame extends JFrame {
         int memberId = m.get().getId();
 
         // Muat Riwayat Pinjam
-        String sqlLoan = "SELECT item.title, l.loan_date, li.due_date, li.status "
+        String sqlLoan = "SELECT item.title, l.borrow_date, li.due_date, li.status "
                 + "FROM loan_items li JOIN loans l ON l.id = li.loan_id "
                 + "JOIN book_copies bc ON bc.id = li.copy_id "
                 + "JOIN library_items item ON item.id = bc.item_id "
@@ -56,7 +56,7 @@ public class MemberHistoryFrame extends JFrame {
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
                 loanModel.addRow(new Object[]{
-                        rs.getString("title"), rs.getDate("loan_date"),
+                        rs.getString("title"), rs.getDate("borrow_date"),
                         rs.getDate("due_date"), rs.getString("status")
                 });
             }
