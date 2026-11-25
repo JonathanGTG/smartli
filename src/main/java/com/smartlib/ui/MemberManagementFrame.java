@@ -154,6 +154,7 @@ public class MemberManagementFrame extends JFrame {
         String currentUser = existing == null || existing.getUserId() == null ? ""
                 : usernames.getOrDefault(existing.getUserId(), "");
         JTextField tfUsername = new JTextField(currentUser, 20);
+        JCheckBox chkAutoUser = new JCheckBox("Buatkan Akun Login Otomatis (Password: SmartLib#123)", existing == null);
 
         JPanel form = UiKit.form(
                 "Kode anggota *", tfCode,
@@ -162,17 +163,21 @@ public class MemberManagementFrame extends JFrame {
                 "Telepon", tfPhone,
                 "Alamat", tfAddress,
                 "Tanggal bergabung (yyyy-MM-dd) *", tfJoin,
-                "Username akun login (opsional)", tfUsername);
+                "Username akun login (opsional)", tfUsername,
+                "", chkAutoUser);
 
         return UiKit.editDialog(this, existing == null ? "Tambah Anggota" : "Ubah Anggota", form, () -> {
             LocalDate joinDate = MemberService.parseDate(tfJoin.getText());
             if (existing == null) {
+                String uname = tfUsername.getText().trim();
+                if (uname.isEmpty() && chkAutoUser.isSelected()) {
+                    uname = tfCode.getText().toLowerCase().replaceAll("[^a-z0-9]", "");
+                }
                 service.addMember(tfCode.getText(), tfName.getText(), tfEmail.getText(), tfPhone.getText(),
-                        tfAddress.getText(), joinDate, tfUsername.getText());
+                        tfAddress.getText(), joinDate, uname, chkAutoUser.isSelected());
             } else {
                 service.updateMember(existing.getId(), tfCode.getText(), tfName.getText(), tfEmail.getText(),
                         tfPhone.getText(), tfAddress.getText(), joinDate, tfUsername.getText());
             }
         });
     }
-}
