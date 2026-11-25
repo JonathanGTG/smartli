@@ -71,10 +71,28 @@ public class MemberService {
 
     public Member addMember(String memberCode, String fullName, String email, String phone,
                             String address, LocalDate joinDate, String username) {
+        return addMember(memberCode, fullName, email, phone, address, joinDate, username, true);
+    }
+
+    public Member addMember(String memberCode, String fullName, String email, String phone,
+                            String address, LocalDate joinDate, String username, boolean autoCreateAccount) {
         authService.requirePermission(Permission.MANAGE_MEMBERS);
-        String code = (memberCode == null || memberCode.isBlank()) ? memberDAO.nextMemberCode() : memberCode;
+        String code = (memberCode == null || memberCode.isBlank()) ? memberDAO.nextMemberCode() : memberCode.trim();
         Member member = new Member(code, fullName, email, phone, address, joinDate);
-        member.setUserId(resolveUserId(username));
+
+        Integer userId = null;
+        if (autoCreateAccount && username != null && !username.isBlank()) {
+            String uname = username.trim().toLowerCase();
+            userId = memberDAO.findAnggotaUserId(uname).orElseGet(() -> {
+                String hash = com.smartlib.util.PasswordHasher.hash("SmartLib#123".toCharArray());
+                com.smartlib.model.User nu = new com.smartlib.model.User(0, uname, hash, fullName.trim(), com.smartlib.model.Role.ANGGOTA, com.smartlib.enums.AccountStatus.ACTIVE);
+                return new com.smartlib.dao.UserDAO().insert(nu);
+            });
+        } else {
+            userId = resolveUserId(username);
+        }
+
+        member.setUserId(userId);
         checkDuplicates(member);
         return memberDAO.insert(member);
     }
