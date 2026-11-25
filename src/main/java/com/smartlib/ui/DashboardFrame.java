@@ -10,7 +10,6 @@ import com.smartlib.ui.components.ReportTablePanel;
 import com.smartlib.ui.components.StatCard;
 
 import javax.swing.*;
-import javax.swing.plaf.basic.BasicButtonUI;
 import java.awt.*;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -238,6 +237,12 @@ public class DashboardFrame extends JFrame {
 
 
         addNavButton(
+                panel, "⚙️  Aturan Peminjaman",
+                user.hasPermission(Permission.CHANGE_LOAN_RULES),
+                () -> new PolicyManagementFrame().setVisible(true));
+
+
+        addNavButton(
                 panel,
                 "↩  Pengembalian",
                 user.hasPermission(Permission.PROCESS_RETURN),
@@ -359,15 +364,7 @@ public class DashboardFrame extends JFrame {
     // STYLE TOMBOL SIDEBAR
     // =========================
 
-    private static final Color NAV_BG = new Color(50, 65, 85);
-    private static final Color NAV_HOVER = new Color(70, 90, 118);
-    private static final Color NAV_PRESSED = new Color(30, 40, 55);
-
     private void styleNavButton(JButton button) {
-
-        // BasicButtonUI: supaya warna tombol dihormati di semua Look and Feel
-        // (Windows LAF mengabaikan setBackground sehingga tombol jadi putih)
-        button.setUI(new BasicButtonUI());
 
         button.setFont(
                 new Font("SansSerif", Font.PLAIN, 13)
@@ -375,15 +372,7 @@ public class DashboardFrame extends JFrame {
 
         button.setForeground(Color.WHITE);
 
-        button.setBackground(NAV_BG);
-
-        button.setOpaque(true);
-
-        button.setRolloverEnabled(true);
-
-        button.setContentAreaFilled(true);
-
-        button.setBorderPainted(false);
+        button.setBackground(new Color(50, 65, 85));
 
         button.setFocusPainted(false);
 
@@ -406,17 +395,6 @@ public class DashboardFrame extends JFrame {
         button.setCursor(
                 new Cursor(Cursor.HAND_CURSOR)
         );
-
-        // Efek hover & tekan
-        button.getModel().addChangeListener(e -> {
-            if (button.getModel().isPressed()) {
-                button.setBackground(NAV_PRESSED);
-            } else if (button.getModel().isRollover()) {
-                button.setBackground(NAV_HOVER);
-            } else {
-                button.setBackground(NAV_BG);
-            }
-        });
     }
 
 
