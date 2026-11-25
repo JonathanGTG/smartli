@@ -1,16 +1,17 @@
 package com.smartlib.ui;
 
-import com.smartlib.model.Book;
-import com.smartlib.model.BookCopy;
-import com.smartlib.model.BookStockSummary;
+import com.smartlib.model.*;
+import com.smartlib.service.AuthService;
 import com.smartlib.service.BookService;
+import com.smartlib.service.MemberService;
+import com.smartlib.service.ReservationService;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.util.List;
+import java.util.Optional;
 
-/** Dialog detail buku: data lengkap, ringkasan stok, dan daftar eksemplar. Hanya membaca data. */
 final class BookDetailDialog {
 
     private BookDetailDialog() { }
@@ -31,10 +32,10 @@ final class BookDetailDialog {
         text.append("Jenis        : ").append(b.getDetails()).append('\n');
         text.append("Deskripsi    : ").append(b.getDescription().isEmpty() ? "-" : b.getDescription()).append('\n');
         text.append('\n');
-        text.append("Stok: total ").append(summary.totalCopies())
-                .append(" | tersedia ").append(summary.availableCopies())
-                .append(" | dipinjam ").append(summary.borrowedCopies())
-                .append(" | lainnya (dicadangkan/rusak/hilang) ").append(summary.otherCopies());
+        text.append("Stok: Total ").append(summary.totalCopies())
+                .append(" | Tersedia ").append(summary.availableCopies())
+                .append(" | Dipinjam ").append(summary.borrowedCopies())
+                .append(" | Cadangan/Rusak ").append(summary.otherCopies());
 
         JTextArea area = new JTextArea(text.toString());
         area.setEditable(false);
@@ -49,20 +50,65 @@ final class BookDetailDialog {
                     c.getShelfLocation().isEmpty() ? "-" : c.getShelfLocation()});
         }
         JScrollPane copyScroll = new JScrollPane(UiKit.table(model));
-        copyScroll.setBorder(BorderFactory.createTitledBorder("Eksemplar"));
-        copyScroll.setPreferredSize(new Dimension(560, 150));
+        copyScroll.setBorder(BorderFactory.createTitledBorder("Eksemplar Fisik"));
+        copyScroll.setPreferredSize(new Dimension(560, 140));
 
-        JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(parent), "Detail Buku",
+        JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(parent), "Detail Koleksi Buku",
                 Dialog.ModalityType.APPLICATION_MODAL);
         dialog.add(new JScrollPane(area), BorderLayout.CENTER);
+
         JPanel south = new JPanel(new BorderLayout());
         south.add(copyScroll, BorderLayout.CENTER);
+
+        JPanel actionRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 8));
+
+        // Tombol Reservasi / Antrean jika stok habis
+        if (summary.availableCopies() == 0 && summary.totalCopies() > 0) {
+            JButton btnQueue = new JButton("📌 Ajukan Antrean (FIFO)");
+            btnQueue.setBackground(new Color(0xE65100));
+            btnQueue.setForeground(Color.WHITE);
+            btnQueue.addActionListener(e -> {
+                Optional<User> currentUser = AuthService.getInstance().getCurrentUser();
+                if (currentUser.isEmpty()) {
+                    JOptionPane.showMessageDialog(dialog, "Silakan login terlebih dahulu.");
+                    return;
+                }
+                User u = currentUser.get();
+                MemberService memberService = new MemberService();
+                Optional<Member> memberOpt = memberService.getMemberByUserId(u.getId());
+                if (memberOpt.isEmpty()) {
+                    JOptionPane.showMessageDialog(dialog,
+                            "Akun Anda belum ditautkan ke profil Anggota perpustakaan. Hubungi petugas.",
+                            "Perhatian", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+                int confirm = JOptionPane.showConfirmDialog(dialog,
+                        "Buku saat ini sedang habis dipinjam.\nApakah Anda ingin masuk ke dalam antrean (FIFO) untuk judul:\n\""
+                                + b.getTitle() + "\"?",
+                        "Konfirmasi Antrean", JOptionPane.YES_NO_OPTION);
+                if (confirm == JOptionPane.YES_OPTION) {
+                    try {
+                        ReservationService reservationService = new ReservationService();
+                        ReservationReceipt receipt = reservationService.requestReservation(memberOpt.get().getId(), b.getId());
+                        JOptionPane.showMessageDialog(dialog,
+                                "Berhasil masuk antrean!\nNomor ID Antrean: " + receipt.reservationId()
+                                        + "\nPosisi antrean saat ini: " + receipt.queuePosition(),
+                                "Sukses", JOptionPane.INFORMATION_MESSAGE);
+                    } catch (Exception ex) {
+                        JOptionPane.showMessageDialog(dialog, "Gagal masuk antrean: " + ex.getMessage(),
+                                "Peringatan", JOptionPane.WARNING_MESSAGE);
+                    }
+                }
+            });
+            actionRow.add(btnQueue);
+        }
+
         JButton close = UiKit.button("Tutup", dialog::dispose);
-        JPanel closeRow = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        closeRow.add(close);
-        south.add(closeRow, BorderLayout.SOUTH);
+        actionRow.add(close);
+
+        south.add(actionRow, BorderLayout.SOUTH);
         dialog.add(south, BorderLayout.SOUTH);
-        dialog.setSize(600, 520);
+        dialog.setSize(620, 540);
         dialog.setLocationRelativeTo(parent);
         dialog.setVisible(true);
     }
