@@ -81,8 +81,6 @@ public class AuthService {
 
     public Optional<User> getCurrentUser() { return Optional.ofNullable(currentUser); }
 
-    // ================= RBAC =================
-
     public User requireLogin() {
         User user = currentUser;
         if (user == null) throw new AuthenticationException("Silakan login terlebih dahulu.");
@@ -106,8 +104,6 @@ public class AuthService {
         }
         return user;
     }
-
-    // ================= Registrasi Anggota Mandiri =================
 
     public User registerMember(String nim, String fullName, String studyProgram, String email,
                                String username, char[] password) {
@@ -143,11 +139,34 @@ public class AuthService {
         User newUser = new User(0, uname, PasswordHasher.hash(password), fullName.trim(),
                 Role.ANGGOTA, AccountStatus.ACTIVE, cleanNim, studyProgram.trim(), cleanEmail);
         int id = userDAO.insert(newUser);
+
+// OTOMATIS DAFTARKAN JUGA KE TABEL MEMBERS:
+        try {
+            com.smartlib.dao.MemberDAO memberDAO = new com.smartlib.dao.MemberDAO();
+            String memberCode = memberDAO.nextMemberCode(); // menghasilkan otomatis misal: AGT-0005
+            com.smartlib.model.Member newMember = new com.smartlib.model.Member(
+                    0,
+                    memberCode,
+                    fullName.trim(),
+                    cleanEmail,
+                    null,                  // telepon (bisa diisi nanti oleh anggota)
+                    studyProgram.trim(),   // alamat / program studi
+                    java.time.LocalDate.now(),
+                    AccountStatus.ACTIVE,
+                    id                     // foreign key: user_id terhubung!
+            );
+            memberDAO.insert(newMember);
+        } catch (Exception e) {
+            System.err.println("Peringatan: Gagal membuat profil member otomatis: " + e.getMessage());
+        }
+
         return new User(id, newUser.getUsername(), newUser.getPasswordHash(), newUser.getFullName(),
                 newUser.getRole(), newUser.getStatus(), newUser.getNim(), newUser.getStudyProgram(), newUser.getEmail());
     }
 
-    public User registerMember(String nim, String fullName, String studyProgram, String email, char[] password) {
+    /** Pendaftaran mandiri tanpa memilih username: username otomatis memakai NIM. */
+    public User registerMember(String nim, String fullName, String studyProgram, String email,
+                               char[] password) {
         return registerMember(nim, fullName, studyProgram, email, null, password);
     }
 
