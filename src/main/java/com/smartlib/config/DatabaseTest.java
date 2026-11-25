@@ -1,4 +1,4 @@
-package com.smartlib.app;
+package com.smartlib.config;
 
 import com.smartlib.config.DatabaseConnection;
 import java.sql.Connection;
