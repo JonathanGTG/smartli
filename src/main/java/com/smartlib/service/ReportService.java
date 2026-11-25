@@ -65,6 +65,25 @@ public class ReportService {
         return reportDAO.loansByMonth(lastNMonths);
     }
 
+    // ─────────────────────── Ringkasan Pribadi Anggota ───────────────────────
+
+    /** Ringkasan pinjaman, antrean, dan denda milik anggota yang sedang login. */
+    public MemberStats getMemberStats(int memberId) {
+        AuthService.getInstance().requirePermission(Permission.VIEW_OWN_HISTORY);
+        return new MemberStats(
+            reportDAO.countMemberActiveLoans(memberId),
+            reportDAO.countMemberQueue(memberId),
+            reportDAO.countMemberOffered(memberId),
+            reportDAO.sumMemberUnpaidFines(memberId)
+        );
+    }
+
+    /** Pinjaman berjalan milik anggota: [judul, jatuh_tempo, status]. */
+    public List<Object[]> memberActiveLoans(int memberId) {
+        AuthService.getInstance().requirePermission(Permission.VIEW_OWN_HISTORY);
+        return reportDAO.memberActiveLoansReport(memberId);
+    }
+
     // ─────────────────────── Inner DTO ───────────────────────────────────────
 
     /** Objek data ringkasan statistik untuk dashboard. */
@@ -84,6 +103,21 @@ public class ReportService {
             this.totalMembers    = totalMembers;
             this.activeLoans     = activeLoans;
             this.overdueLoans    = overdueLoans;
+        }
+    }
+
+    /** Ringkasan pribadi anggota untuk dashboard Anggota. */
+    public static final class MemberStats {
+        public final int activeLoans;
+        public final int queued;
+        public final int readyToPickup;
+        public final java.math.BigDecimal unpaidFines;
+
+        MemberStats(int activeLoans, int queued, int readyToPickup, java.math.BigDecimal unpaidFines) {
+            this.activeLoans   = activeLoans;
+            this.queued        = queued;
+            this.readyToPickup = readyToPickup;
+            this.unpaidFines   = unpaidFines;
         }
     }
 }

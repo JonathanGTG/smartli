@@ -126,7 +126,82 @@ public class ReportDAO {
         return map;
     }
 
+    // ─────────────────────── Ringkasan Pribadi Anggota ───────────────────────
+
+    /** Jumlah eksemplar yang sedang dipinjam anggota. */
+    public int countMemberActiveLoans(int memberId) {
+        return queryCount(
+            "SELECT COUNT(*) FROM loan_items li JOIN loans l ON l.id = li.loan_id " +
+            "WHERE l.member_id = ? AND li.status = 'BORROWED'", memberId);
+    }
+
+    /** Jumlah antrean aktif (WAITING + OFFERED) milik anggota. */
+    public int countMemberQueue(int memberId) {
+        return queryCount(
+            "SELECT COUNT(*) FROM reservations WHERE member_id = ? AND status IN ('WAITING','OFFERED')", memberId);
+    }
+
+    /** Jumlah antrean yang sudah ditawarkan (buku siap diambil). */
+    public int countMemberOffered(int memberId) {
+        return queryCount(
+            "SELECT COUNT(*) FROM reservations WHERE member_id = ? AND status = 'OFFERED'", memberId);
+    }
+
+    /** Total nominal denda UNPAID milik anggota. */
+    public java.math.BigDecimal sumMemberUnpaidFines(int memberId) {
+        String sql = "SELECT COALESCE(SUM(f.amount), 0) FROM fines f " +
+                     "JOIN loan_items li ON li.id = f.loan_item_id " +
+                     "JOIN loans l ON l.id = li.loan_id " +
+                     "WHERE l.member_id = ? AND f.status = 'UNPAID'";
+        try (Connection c = DatabaseConnection.getConnection();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setInt(1, memberId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getBigDecimal(1) : java.math.BigDecimal.ZERO;
+            }
+        } catch (SQLException e) {
+            throw new DataAccessException("Gagal menghitung denda anggota.", e);
+        }
+    }
+
+    /** Pinjaman berjalan milik anggota. Setiap baris: [judul, jatuh_tempo, status]. */
+    public List<Object[]> memberActiveLoansReport(int memberId) {
+        String sql = "SELECT item.title, li.due_date, " +
+                     "       CASE WHEN li.due_date < CURDATE() THEN 'Terlambat' ELSE 'Dipinjam' END AS state " +
+                     "FROM loan_items li " +
+                     "JOIN loans l ON l.id = li.loan_id " +
+                     "JOIN item_copies c ON c.id = li.copy_id " +
+                     "JOIN library_items item ON item.id = c.item_id " +
+                     "WHERE l.member_id = ? AND li.status = 'BORROWED' " +
+                     "ORDER BY li.due_date ASC";
+        List<Object[]> rows = new ArrayList<>();
+        try (Connection c = DatabaseConnection.getConnection();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setInt(1, memberId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    rows.add(new Object[]{rs.getString(1), rs.getDate(2), rs.getString(3)});
+                }
+            }
+        } catch (SQLException e) {
+            throw new DataAccessException("Gagal membaca pinjaman anggota.", e);
+        }
+        return rows;
+    }
+
     // ─────────────────────── helper ───────────────────────────────────────────
+
+    private int queryCount(String sql, int param) {
+        try (Connection c = DatabaseConnection.getConnection();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setInt(1, param);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt(1) : 0;
+            }
+        } catch (SQLException e) {
+            throw new DataAccessException("Gagal menghitung data anggota.", e);
+        }
+    }
 
     private int queryCount(String sql) {
         try (Connection c = DatabaseConnection.getConnection();

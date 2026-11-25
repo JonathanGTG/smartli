@@ -17,6 +17,37 @@ final class UiKit {
 
     private UiKit() { }
 
+    /**
+     * Tombol berwarna yang menggambar latar sendiri, sehingga warnanya tetap tampil di semua
+     * Look and Feel (Windows LAF mengabaikan setBackground dan membuat teks putih tak terbaca).
+     */
+    static JButton accentButton(String text, Color bg) {
+        JButton b = new JButton(text) {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                Color c = !isEnabled() ? new Color(176, 176, 176)
+                        : getModel().isPressed() ? bg.darker().darker()
+                        : getModel().isRollover() ? bg.darker() : bg;
+                g2.setColor(c);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        b.setUI(new javax.swing.plaf.basic.BasicButtonUI());
+        b.setContentAreaFilled(false);
+        b.setOpaque(false);
+        b.setBorderPainted(false);
+        b.setFocusPainted(false);
+        b.setRolloverEnabled(true);
+        b.setForeground(Color.WHITE);
+        b.setFont(b.getFont().deriveFont(Font.BOLD));
+        b.setBorder(BorderFactory.createEmptyBorder(7, 14, 7, 14));
+        b.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        return b;
+    }
+
     static JButton button(String text, Runnable action) {
         JButton b = new JButton(text);
         b.addActionListener(e -> action.run());

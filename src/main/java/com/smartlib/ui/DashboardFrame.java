@@ -1,20 +1,25 @@
 package com.smartlib.ui;
 
 import com.smartlib.exception.DataAccessException;
+import com.smartlib.model.Member;
 import com.smartlib.model.Permission;
 import com.smartlib.model.User;
 import com.smartlib.service.AuthService;
+import com.smartlib.service.MemberService;
 import com.smartlib.service.ReportService;
 import com.smartlib.service.ReportService.DashboardStats;
+import com.smartlib.service.ReportService.MemberStats;
 import com.smartlib.ui.components.ReportTablePanel;
 import com.smartlib.ui.components.StatCard;
 
 import javax.swing.*;
 import javax.swing.plaf.basic.BasicButtonUI;
 import java.awt.*;
+import java.text.NumberFormat;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Locale;
 
 public class DashboardFrame extends JFrame {
 
@@ -29,6 +34,28 @@ public class DashboardFrame extends JFrame {
 
     private final User user;
     private final boolean showSummary;
+
+    // Dashboard khusus Anggota (role tanpa VIEW_REPORTS tetapi punya VIEW_OWN_HISTORY)
+    private final boolean showMemberSummary;
+    private final Integer memberId;
+
+    private final StatCard cardMyLoans =
+            new StatCard("Pinjaman aktif");
+
+    private final StatCard cardMyQueue =
+            new StatCard("Antrean aktif");
+
+    private final StatCard cardMyReady =
+            new StatCard("Buku siap diambil");
+
+    private final StatCard cardMyFines =
+            new StatCard("Denda belum dibayar");
+
+    private final ReportTablePanel myLoansTable =
+            new ReportTablePanel(
+                    "Pinjaman saya yang sedang berjalan",
+                    new String[]{"Judul", "Jatuh tempo", "Status"}
+            );
 
     // Statistik dashboard
     private final StatCard cardBooks =
@@ -82,6 +109,14 @@ public class DashboardFrame extends JFrame {
 
         this.showSummary =
                 user.hasPermission(Permission.VIEW_REPORTS);
+
+        this.showMemberSummary =
+                !showSummary && user.hasPermission(Permission.VIEW_OWN_HISTORY);
+
+        this.memberId = showMemberSummary
+                ? new MemberService().getMemberByUserId(user.getId())
+                        .map(Member::getId).orElse(null)
+                : null;
 
         setDefaultCloseOperation(EXIT_ON_CLOSE);
 
@@ -207,6 +242,22 @@ public class DashboardFrame extends JFrame {
 
         addNavButton(
                 panel,
+                "📋  Riwayat & Denda Saya",
+                user.hasPermission(Permission.VIEW_OWN_HISTORY),
+                () -> new MemberHistoryFrame(user).setVisible(true)
+        );
+
+
+        addNavButton(
+                panel,
+                "📌  Status Antrean Saya",
+                user.hasPermission(Permission.REQUEST_QUEUE),
+                () -> new MemberQueueFrame(user).setVisible(true)
+        );
+
+
+        addNavButton(
+                panel,
                 "📚  Kelola Koleksi",
                 user.hasPermission(Permission.MANAGE_COLLECTION),
                 () -> new BookManagementFrame().setVisible(true)
@@ -276,6 +327,12 @@ public class DashboardFrame extends JFrame {
                 () -> new UserManagementFrame().setVisible(true)
         );
 
+        addNavButton(
+                panel,
+                "⚙  Aturan Perpustakaan",
+                user.hasPermission(Permission.CHANGE_LOAN_RULES),
+                () -> new PolicyManagementFrame().setVisible(true)
+        );
 
         addNavButton(
                 panel,
@@ -541,6 +598,47 @@ public class DashboardFrame extends JFrame {
                     BorderLayout.CENTER
             );
 
+        } else if (showMemberSummary) {
+
+            // Dashboard Anggota: ringkasan pribadi
+            JPanel memberData = new JPanel(
+                    new BorderLayout(10, 15)
+            );
+
+            memberData.setOpaque(false);
+
+
+            JPanel stats = new JPanel(
+                    new GridLayout(1, 4, 10, 10)
+            );
+
+            stats.setOpaque(false);
+
+            stats.add(cardMyLoans);
+
+            stats.add(cardMyQueue);
+
+            stats.add(cardMyReady);
+
+            stats.add(cardMyFines);
+
+
+            memberData.add(
+                    stats,
+                    BorderLayout.NORTH
+            );
+
+            memberData.add(
+                    myLoansTable,
+                    BorderLayout.CENTER
+            );
+
+
+            root.add(
+                    memberData,
+                    BorderLayout.CENTER
+            );
+
         } else {
 
             // Dashboard untuk user tanpa permission laporan
@@ -583,7 +681,7 @@ public class DashboardFrame extends JFrame {
 
 
         // Tombol refresh statistik
-        if (showSummary) {
+        if (showSummary || showMemberSummary) {
 
             JButton reload = new JButton("🔄 Muat Ulang");
 
@@ -645,6 +743,13 @@ public class DashboardFrame extends JFrame {
     // =========================
 
     private void refresh() {
+
+        if (showMemberSummary) {
+
+            refreshMember();
+
+            return;
+        }
 
         if (!showSummary) {
             return;
@@ -746,6 +851,104 @@ public class DashboardFrame extends JFrame {
                 try {
 
                     mostBorrowedTable.setData(get());
+
+                } catch (Exception ex) {
+
+                    handleError(ex);
+                }
+            }
+
+        }.execute();
+    }
+
+
+    // =========================
+    // REFRESH DASHBOARD ANGGOTA
+    // =========================
+
+    private void refreshMember() {
+
+        if (memberId == null) {
+
+            lastLoaded.setText(
+                    "Akun belum tertaut ke data anggota"
+            );
+
+            return;
+        }
+
+        errorShown = false;
+
+        final int id = memberId;
+
+
+        new SwingWorker<MemberStats, Void>() {
+
+            @Override
+            protected MemberStats doInBackground() {
+
+                return reportService.getMemberStats(id);
+            }
+
+
+            @Override
+            protected void done() {
+
+                try {
+
+                    MemberStats s = get();
+
+                    cardMyLoans.setValue(
+                            String.valueOf(s.activeLoans)
+                    );
+
+                    cardMyQueue.setValue(
+                            String.valueOf(s.queued)
+                    );
+
+                    cardMyReady.setValue(
+                            String.valueOf(s.readyToPickup)
+                    );
+
+                    cardMyFines.setValue(
+                            NumberFormat.getCurrencyInstance(
+                                    Locale.forLanguageTag("id-ID")
+                            ).format(s.unpaidFines)
+                    );
+
+                    cardMyFines.setHighlight(
+                            s.unpaidFines.signum() > 0
+                    );
+
+                    lastLoaded.setText(
+                            "Dimuat pukul "
+                                    + LocalTime.now().format(TIME)
+                    );
+
+                } catch (Exception ex) {
+
+                    handleError(ex);
+                }
+            }
+
+        }.execute();
+
+
+        new SwingWorker<List<Object[]>, Void>() {
+
+            @Override
+            protected List<Object[]> doInBackground() {
+
+                return reportService.memberActiveLoans(id);
+            }
+
+
+            @Override
+            protected void done() {
+
+                try {
+
+                    myLoansTable.setData(get());
 
                 } catch (Exception ex) {
 
