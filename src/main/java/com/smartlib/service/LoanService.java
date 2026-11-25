@@ -5,8 +5,6 @@ import com.smartlib.model.Permission;
 import com.smartlib.dao.FineDAO;
 import com.smartlib.dao.LoanDAO;
 import com.smartlib.dao.ReservationDAO;
-import com.smartlib.exception.BookUnavailableException;
-import com.smartlib.exception.BorrowLimitExceededException;
 import com.smartlib.exception.BusinessRuleException;
 import com.smartlib.model.BorrowReceipt;
 import com.smartlib.model.ReturnReceipt;
@@ -107,7 +105,7 @@ public class LoanService {
 
         int activeLoans = LoanDAO.countActiveLoans(connection, memberId);
         if (activeLoans >= MAX_ACTIVE_BOOKS) {
-            throw new BorrowLimitExceededException("Batas peminjaman tercapai. Maksimal " + MAX_ACTIVE_BOOKS + " eksemplar aktif.");
+            throw new BusinessRuleException("Batas peminjaman tercapai. Maksimal " + MAX_ACTIVE_BOOKS + " eksemplar aktif.");
         }
         if (LoanDAO.hasUnpaidFine(connection, memberId)) {
             throw new BusinessRuleException("Anggota masih memiliki denda yang belum dibayar.");
@@ -116,7 +114,7 @@ public class LoanService {
         LoanDAO.CopyData copy = LoanDAO.lockCopy(connection, copyId);
         if (copy == null) throw new BusinessRuleException("Eksemplar buku tidak ditemukan.");
         if (!expectedCopyStatus.equalsIgnoreCase(copy.status())) {
-            throw new BookUnavailableException("Eksemplar tidak tersedia untuk dipinjam. Status saat ini: " + copy.status());
+            throw new BusinessRuleException("Eksemplar tidak tersedia untuk dipinjam. Status saat ini: " + copy.status());
         }
         if ("AVAILABLE".equalsIgnoreCase(expectedCopyStatus)
                 && ReservationDAO.hasWaitingReservation(connection, copy.itemId())) {
