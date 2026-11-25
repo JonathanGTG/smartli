@@ -1,5 +1,6 @@
 package com.smartlib.service;
 
+import com.smartlib.dao.MemberDAO;
 import com.smartlib.dao.UserDAO;
 import com.smartlib.enums.AccountStatus;
 import com.smartlib.exception.AccessDeniedException;
@@ -8,7 +9,8 @@ import com.smartlib.model.Permission;
 import com.smartlib.model.Role;
 import com.smartlib.model.User;
 import com.smartlib.util.PasswordHasher;
-
+import com.smartlib.model.Member;
+import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -31,6 +33,7 @@ public class AuthService {
     private static AuthService instance;
 
     private final UserDAO userDAO;
+    private final MemberDAO memberDAO = new MemberDAO();
     private volatile User currentUser;   // session: pengguna yang sedang login
 
     public AuthService(UserDAO userDAO) {
@@ -140,33 +143,26 @@ public class AuthService {
                 Role.ANGGOTA, AccountStatus.ACTIVE, cleanNim, studyProgram.trim(), cleanEmail);
         int id = userDAO.insert(newUser);
 
-// OTOMATIS DAFTARKAN JUGA KE TABEL MEMBERS:
-        try {
-            com.smartlib.dao.MemberDAO memberDAO = new com.smartlib.dao.MemberDAO();
-            String memberCode = memberDAO.nextMemberCode(); // menghasilkan otomatis misal: AGT-0005
-            com.smartlib.model.Member newMember = new com.smartlib.model.Member(
-                    0,
-                    memberCode,
-                    fullName.trim(),
-                    cleanEmail,
-                    null,                  // telepon (bisa diisi nanti oleh anggota)
-                    studyProgram.trim(),   // alamat / program studi
-                    java.time.LocalDate.now(),
-                    AccountStatus.ACTIVE,
-                    id                     // foreign key: user_id terhubung!
+        // --- TAMBAHKAN BAGIAN INI ---
+        if (memberDAO != null) {
+            String nextCode = memberDAO.nextMemberCode(); // menghasilkan misal AGT-0005
+            Member newMember = new Member(
+                    nextCode,
+                    newUser.getFullName(),
+                    newUser.getEmail(),
+                    "",                     // telepon awal (kosong)
+                    "",                     // alamat awal (kosong)
+                    LocalDate.now()         // tanggal bergabung hari ini
             );
-            memberDAO.insert(newMember);
-        } catch (Exception e) {
-            System.err.println("Peringatan: Gagal membuat profil member otomatis: " + e.getMessage());
+            newMember.setUserId(id);        // hubungkan dengan id akun login yang baru dibuat
+            memberDAO.insert(newMember);    // simpan ke tabel members
         }
+        // ----------------------------
 
         return new User(id, newUser.getUsername(), newUser.getPasswordHash(), newUser.getFullName(),
                 newUser.getRole(), newUser.getStatus(), newUser.getNim(), newUser.getStudyProgram(), newUser.getEmail());
     }
-
-    /** Pendaftaran mandiri tanpa memilih username: username otomatis memakai NIM. */
-    public User registerMember(String nim, String fullName, String studyProgram, String email,
-                               char[] password) {
+    public User registerMember(String nim, String fullName, String studyProgram, String email, char[] password) {
         return registerMember(nim, fullName, studyProgram, email, null, password);
     }
 

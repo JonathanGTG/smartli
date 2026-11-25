@@ -23,9 +23,9 @@ class LoanServiceTest {
     @Test
     @DisplayName("Konstanta aturan peminjaman sesuai PRD Bagian 8")
     void konstantaAturanSesuaiPRD() {
-        assertEquals(3, LoanService.MAX_ACTIVE_BOOKS, "Maksimal peminjaman aktif harus 3");
-        assertEquals(7, LoanService.LOAN_PERIOD_DAYS, "Masa peminjaman harus 7 hari");
-        assertEquals(0, new BigDecimal("2000.00").compareTo(LoanService.DAILY_FINE_RATE),
+        assertEquals(3, LoanService.getMaxActiveBooks(), "Maksimal peminjaman aktif harus 3");
+        assertEquals(7, LoanService.getLoanPeriodDays(), "Masa peminjaman harus 7 hari");
+        assertEquals(0, new BigDecimal("2000.00").compareTo(LoanService.getDailyFineRate()),
                 "Tarif denda harian harus Rp2.000");
     }
 

@@ -4,6 +4,8 @@ import com.smartlib.config.DatabaseConnection;
 import com.smartlib.enums.AccountStatus;
 import com.smartlib.exception.DataAccessException;
 import com.smartlib.model.Member;
+import com.smartlib.model.User;
+import com.smartlib.service.AuthService;
 
 import java.sql.Connection;
 import java.sql.Date;
@@ -32,7 +34,25 @@ public class MemberDAO {
     public List<Member> findAll() {
         return search("", null);
     }
+    /*
+    private final UserDAO userDAO;
+    private final MemberDAO memberDAO; // <-- Tambahkan ini
+    private volatile User currentUser;
 
+    public AuthService(UserDAO userDAO) {
+        this(userDAO, new MemberDAO());
+    }
+
+    public AuthService(UserDAO userDAO, MemberDAO memberDAO) {
+        this.userDAO = userDAO;
+        this.memberDAO = memberDAO;
+    }
+
+    public static synchronized AuthService getInstance() {
+        if (instance == null) instance = new AuthService(new UserDAO(), new MemberDAO());
+        return instance;
+    }
+     */
     /**
      * Mencari anggota. Kata kunci dicocokkan ke kode, nama, email, telepon, dan alamat.
      *

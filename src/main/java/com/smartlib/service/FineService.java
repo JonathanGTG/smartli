@@ -18,7 +18,7 @@ public class FineService {
     private final FinePolicy finePolicy;
 
     public FineService() {
-        this(new DailyFinePolicy(LoanService.DAILY_FINE_RATE));
+        this(new DailyFinePolicy(LoanService.getDailyFineRate()));
     }
 
     public FineService(FinePolicy finePolicy) {

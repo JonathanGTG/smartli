@@ -237,6 +237,12 @@ public class DashboardFrame extends JFrame {
 
 
         addNavButton(
+                panel, "⚙️  Aturan Peminjaman",
+                user.hasPermission(Permission.CHANGE_LOAN_RULES),
+                () -> new PolicyManagementFrame().setVisible(true));
+
+
+        addNavButton(
                 panel,
                 "↩  Pengembalian",
                 user.hasPermission(Permission.PROCESS_RETURN),
