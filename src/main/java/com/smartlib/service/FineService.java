@@ -1,6 +1,7 @@
 package com.smartlib.service;
 
 import com.smartlib.config.DatabaseConnection;
+import com.smartlib.model.Permission;
 import com.smartlib.dao.FineDAO;
 import com.smartlib.model.FineRecord;
 import com.smartlib.policy.DailyFinePolicy;
@@ -33,12 +34,14 @@ public class FineService {
     }
 
     public List<FineRecord> getFinesByMember(long memberId) throws SQLException {
+        AuthService.getInstance().requirePermission(Permission.RECORD_FINE_PAYMENT);
         try (Connection connection = DatabaseConnection.getConnection()) {
             return FineDAO.findByMember(connection, memberId);
         }
     }
 
     public void markFineAsPaid(long fineId) throws SQLException {
+        AuthService.getInstance().requirePermission(Permission.RECORD_FINE_PAYMENT);
         try (Connection connection = DatabaseConnection.getConnection()) {
             connection.setAutoCommit(false);
             try {

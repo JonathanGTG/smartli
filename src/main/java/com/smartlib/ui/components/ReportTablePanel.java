@@ -29,7 +29,6 @@ public class ReportTablePanel extends JPanel {
         table.setRowHeight(24);
         table.setGridColor(new Color(230, 230, 230));
         table.getTableHeader().setFont(table.getFont().deriveFont(Font.BOLD));
-        table.setSelectionBackground(new Color(0xBBDEFB));
         table.setShowVerticalLines(false);
 
         // Rata kanan untuk kolom angka (kolom terakhir)

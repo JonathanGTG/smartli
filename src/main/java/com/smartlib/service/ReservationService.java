@@ -1,6 +1,9 @@
 package com.smartlib.service;
 
 import com.smartlib.config.DatabaseConnection;
+import com.smartlib.model.User;
+import com.smartlib.exception.AccessDeniedException;
+import com.smartlib.model.Permission;
 import com.smartlib.dao.LoanDAO;
 import com.smartlib.dao.ReservationDAO;
 import com.smartlib.exception.BusinessRuleException;
@@ -15,6 +18,7 @@ public class ReservationService {
 
     public ReservationReceipt requestReservation(long memberId, long itemId)
             throws SQLException, BusinessRuleException {
+        requireQueueAccess();
         try (Connection connection = DatabaseConnection.getConnection()) {
             connection.setAutoCommit(false);
             try {
@@ -42,6 +46,7 @@ public class ReservationService {
 
     public void cancelReservation(long memberId, long reservationId)
             throws SQLException, BusinessRuleException {
+        requireQueueAccess();
         try (Connection connection = DatabaseConnection.getConnection()) {
             connection.setAutoCommit(false);
             try {
@@ -82,6 +87,7 @@ public class ReservationService {
      * ditawarkan kepada anggota WAITING berikutnya.
      */
     public int processExpiredOffers() throws SQLException {
+        AuthService.getInstance().requirePermission(Permission.PROCESS_LOAN);
         try (Connection connection = DatabaseConnection.getConnection()) {
             connection.setAutoCommit(false);
             try {
@@ -110,6 +116,16 @@ public class ReservationService {
     public int getQueuePosition(long reservationId, long itemId) throws SQLException {
         try (Connection connection = DatabaseConnection.getConnection()) {
             return ReservationDAO.getQueuePosition(connection, reservationId, itemId);
+        }
+    }
+
+    /** Antrean boleh diproses anggota (REQUEST_QUEUE) atau petugas/admin yang mewakili anggota (PROCESS_LOAN). */
+    private static void requireQueueAccess() {
+        AuthService auth = AuthService.getInstance();
+        User user = auth.requireLogin();
+        if (!user.hasPermission(Permission.REQUEST_QUEUE) && !user.hasPermission(Permission.PROCESS_LOAN)) {
+            throw new AccessDeniedException("Role " + user.getRole().getLabel()
+                    + " tidak berhak mengelola antrean.");
         }
     }
 

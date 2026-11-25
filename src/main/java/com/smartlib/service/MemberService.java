@@ -30,6 +30,7 @@ public class MemberService {
     public MemberService(AuthService authService, MemberDAO memberDAO) {
         this.authService = authService;
         this.memberDAO = memberDAO;
+
     }
 
     // ---------- membaca ----------

@@ -23,6 +23,8 @@ public class ReservationFrame extends JFrame {
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setSize(520, 300);
         setLocationRelativeTo(null);
+        com.smartlib.service.AuthService.getInstance().getCurrentUser()
+                .ifPresent(u -> staffUserIdField.setText(String.valueOf(u.getId())));
 
         JPanel form = new JPanel(new GridBagLayout());
         form.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
