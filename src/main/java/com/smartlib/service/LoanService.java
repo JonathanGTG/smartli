@@ -19,6 +19,9 @@ import java.time.LocalDate;
 /** Logika transaksi peminjaman dan pengembalian. */
 public class LoanService {
     // Variabel aturan dinamis (dapat diubah oleh Admin lewat aplikasi)
+    private static final int MAX_ACTIVE_BOOKS = 3;
+    private static final int LOAN_PERIOD_DAYS = 7;
+    private static final BigDecimal DAILY_FINE_RATE = new BigDecimal("2000.00");
     private static int maxActiveBooks = MAX_ACTIVE_BOOKS;
     private static int loanPeriodDays = LOAN_PERIOD_DAYS;
     private static BigDecimal dailyFineRate = DAILY_FINE_RATE;
