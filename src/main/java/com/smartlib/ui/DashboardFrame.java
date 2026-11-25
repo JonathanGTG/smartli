@@ -280,7 +280,7 @@ public class DashboardFrame extends JFrame {
                 panel,
                 "🧾  Akun Saya",
                 user.hasPermission(Permission.VIEW_OWN_HISTORY),
-                () -> new MyAccountFrame(user).setVisible(true)
+                () -> new ManageAccountFrame().setVisible(true)
         );
 
 
