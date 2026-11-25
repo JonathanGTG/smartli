@@ -41,7 +41,7 @@ public class ReportFrame extends JFrame {
             new String[]{"Bulan (YYYY-MM)", "Jumlah Pinjam"});
 
     public ReportFrame(User user) {
-        super("SmartLib — Laporan Statistik");
+        super("SmartLib - Laporan");
         this.user = user;
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         buildUi();
@@ -51,30 +51,21 @@ public class ReportFrame extends JFrame {
     }
 
     private void buildUi() {
-        // Header
-        JPanel header = new JPanel(new BorderLayout());
-        header.setBackground(new Color(0x1565C0));
-        header.setBorder(BorderFactory.createEmptyBorder(12, 20, 12, 20));
-        JLabel lbl = new JLabel("📊  Laporan & Statistik SmartLib");
-        lbl.setFont(lbl.getFont().deriveFont(Font.BOLD, 16f));
-        lbl.setForeground(Color.WHITE);
-        header.add(lbl, BorderLayout.WEST);
-
-        JButton btnRefresh = new JButton("⟳ Refresh");
+        JButton btnRefresh = new JButton("Muat Ulang");
         btnRefresh.addActionListener(e -> loadAll());
-        header.add(btnRefresh, BorderLayout.EAST);
+        JPanel top = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 6));
+        top.add(btnRefresh);
 
-        // Tabs
         JTabbedPane tabs = new JTabbedPane();
-        tabs.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
-        tabs.addTab("⚠ Terlambat",          wrapScrollable(overduePanel));
-        tabs.addTab("🏆 Buku Populer",       wrapScrollable(mostBorrowedPanel));
-        tabs.addTab("👥 Aktivitas Anggota",  wrapScrollable(memberPanel));
-        tabs.addTab("📅 Bulanan",            wrapScrollable(monthlyPanel));
+        tabs.setBorder(BorderFactory.createEmptyBorder(0, 8, 8, 8));
+        tabs.addTab("Terlambat",          wrapScrollable(overduePanel));
+        tabs.addTab("Buku Populer",       wrapScrollable(mostBorrowedPanel));
+        tabs.addTab("Aktivitas Anggota",  wrapScrollable(memberPanel));
+        tabs.addTab("Bulanan",            wrapScrollable(monthlyPanel));
 
         setLayout(new BorderLayout());
-        add(header, BorderLayout.NORTH);
-        add(tabs,   BorderLayout.CENTER);
+        add(top,  BorderLayout.NORTH);
+        add(tabs, BorderLayout.CENTER);
     }
 
     private JScrollPane wrapScrollable(JPanel panel) {

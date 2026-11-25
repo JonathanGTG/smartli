@@ -43,6 +43,9 @@ public class AuthService {
         return instance;
     }
 
+    /** Hanya untuk pengujian: mengganti instance bersama (mis. dengan DAO palsu). */
+    static synchronized void setInstanceForTesting(AuthService replacement) { instance = replacement; }
+
     // ================= Autentikasi & session =================
 
     public User login(String username, char[] password) {

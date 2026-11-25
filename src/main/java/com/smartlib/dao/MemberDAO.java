@@ -86,6 +86,20 @@ public class MemberDAO {
             throw new DataAccessException("Gagal memeriksa akun anggota.", e);
         }
     }
+    public Optional<Member> findByUserId(int userId) {
+        String sql = "SELECT id, member_code, full_name, email, phone, address, join_date, valid_until, status, user_id "
+                + "FROM members WHERE user_id = ?";
+        try (Connection c = DatabaseConnection.getConnection();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return Optional.of(map(rs));
+                return Optional.empty();
+            }
+        } catch (SQLException e) {
+            throw new DataAccessException("Gagal mencari anggota berdasarkan user_id: " + userId, e);
+        }
+    }
 
     // ---------- pengecekan duplikat (excludeId = id anggota yang sedang diedit, 0 untuk anggota baru) ----------
 
