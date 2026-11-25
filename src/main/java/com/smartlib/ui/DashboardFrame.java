@@ -11,216 +11,171 @@ import com.smartlib.ui.components.StatCard;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.KeyEvent;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 /**
- * Dashboard utama SmartLib (Anggota 5).
- *
- * Menampilkan:
- * - Ringkasan statistik (kartu angka)
- * - Daftar buku terlambat
- * - Top-5 buku paling sering dipinjam
- * - Navigasi menu berdasarkan role
+ * Jendela utama setelah login. Navigasi lewat menu bar (hanya menu yang boleh diakses role pengguna);
+ * bagian tengah menampilkan ringkasan dan dua tabel untuk Admin/Petugas.
  */
 public class DashboardFrame extends JFrame {
 
-    private static final Color COLOR_BOOKS    = new Color(0x1976D2);
-    private static final Color COLOR_MEMBERS  = new Color(0x388E3C);
-    private static final Color COLOR_LOANS    = new Color(0xF57C00);
-    private static final Color COLOR_OVERDUE  = new Color(0xC62828);
+    private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("HH:mm:ss");
 
-    private final AuthService   authService   = AuthService.getInstance();
+    private final AuthService authService = AuthService.getInstance();
     private final ReportService reportService = ReportService.getInstance();
     private final User user;
+    private final boolean showSummary;
 
-    // Kartu statistik
-    private final StatCard cardBooks    = new StatCard("Total Judul Buku", "—", COLOR_BOOKS);
-    private final StatCard cardMembers  = new StatCard("Total Anggota",    "—", COLOR_MEMBERS);
-    private final StatCard cardLoans    = new StatCard("Peminjaman Aktif", "—", COLOR_LOANS);
-    private final StatCard cardOverdue  = new StatCard("Buku Terlambat",  "—", COLOR_OVERDUE);
+    private final StatCard cardBooks = new StatCard("Judul koleksi");
+    private final StatCard cardMembers = new StatCard("Anggota");
+    private final StatCard cardLoans = new StatCard("Pinjaman aktif");
+    private final StatCard cardOverdue = new StatCard("Terlambat");
 
-    // Tabel laporan cepat
     private final ReportTablePanel overdueTable =
-            new ReportTablePanel("📋 Buku Terlambat",
-                    new String[]{"Anggota", "Judul Buku", "Jatuh Tempo", "Hari Terlambat"});
+            new ReportTablePanel("Peminjaman terlambat",
+                    new String[]{"Anggota", "Judul", "Jatuh tempo", "Hari terlambat"});
 
     private final ReportTablePanel mostBorrowedTable =
-            new ReportTablePanel("🏆 Top-5 Buku Paling Sering Dipinjam",
-                    new String[]{"Judul Buku", "Jumlah Pinjam"});
+            new ReportTablePanel("Paling sering dipinjam (5 teratas)",
+                    new String[]{"Judul", "Jumlah pinjam"});
+
+    private final JLabel lastLoaded = new JLabel(" ");
+    private boolean errorShown;
 
     public DashboardFrame(User user) {
-        super("SmartLib — Dashboard " + user.getRole().getLabel());
+        super("SmartLib - Dashboard " + user.getRole().getLabel());
         this.user = user;
+        this.showSummary = user.hasPermission(Permission.VIEW_REPORTS);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
-        buildUi();
-        setSize(1100, 700);
-        setMinimumSize(new Dimension(900, 580));
+        setJMenuBar(buildMenuBar());
+        setContentPane(buildContent());
+        setSize(980, 620);
+        setMinimumSize(new Dimension(800, 500));
         setLocationRelativeTo(null);
         refresh();
     }
 
-    // ─────────────────────── Pembangunan UI ───────────────────────
+    // ---------- menu ----------
 
-    private void buildUi() {
-        // Header
-        JPanel header = buildHeader();
+    private JMenuBar buildMenuBar() {
+        JMenuBar bar = new JMenuBar();
 
-        // Kartu statistik
-        JPanel statsPanel = new JPanel(new GridLayout(1, 4, 12, 0));
-        statsPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
-        statsPanel.add(cardBooks);
-        statsPanel.add(cardMembers);
-        statsPanel.add(cardLoans);
-        statsPanel.add(cardOverdue);
-
-        // Tabel laporan
-        JSplitPane tables = new JSplitPane(
-                JSplitPane.HORIZONTAL_SPLIT, overdueTable, mostBorrowedTable);
-        tables.setResizeWeight(0.6);
-        tables.setBorder(null);
-
-        // Panel kiri: menu navigasi
-        JPanel nav = buildNavMenu();
-
-        // Panel tengah: statistik + tabel
-        JPanel center = new JPanel(new BorderLayout(0, 12));
-        center.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
-        center.add(statsPanel, BorderLayout.NORTH);
-        center.add(tables, BorderLayout.CENTER);
-
-        // Footer
-        JPanel footer = buildFooter();
-
-        // Layout utama
-        JPanel content = new JPanel(new BorderLayout(0, 0));
-        content.add(header,  BorderLayout.NORTH);
-        content.add(nav,     BorderLayout.WEST);
-        content.add(center,  BorderLayout.CENTER);
-        content.add(footer,  BorderLayout.SOUTH);
-        setContentPane(content);
-    }
-
-    private JPanel buildHeader() {
-        JPanel panel = new JPanel(new BorderLayout(8, 8));
-        panel.setBackground(new Color(0x1565C0));
-        panel.setBorder(BorderFactory.createEmptyBorder(14, 20, 14, 20));
-
-        JLabel title = new JLabel("📚 SmartLib — Smart Library Management System");
-        title.setFont(title.getFont().deriveFont(Font.BOLD, 18f));
-        title.setForeground(Color.WHITE);
-
-        JLabel info = new JLabel("Selamat datang, " + user.getFullName()
-                + "  |  Role: " + user.getRole().getLabel());
-        info.setForeground(new Color(0xBBDEFB));
-
-        panel.add(title, BorderLayout.WEST);
-        panel.add(info,  BorderLayout.EAST);
-        return panel;
-    }
-
-    private JPanel buildNavMenu() {
-        JPanel panel = new JPanel();
-        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-        panel.setBackground(new Color(0x263238));
-        panel.setBorder(BorderFactory.createEmptyBorder(16, 0, 16, 0));
-        panel.setPreferredSize(new Dimension(190, 0));
-
-        addNavLabel(panel, "MENU");
-
-        addNavButton(panel, "🏠  Dashboard",
-                user.hasPermission(Permission.VIEW_REPORTS), this::refresh);
-
-        addNavButton(panel, "📖  Katalog Buku",
-                user.hasPermission(Permission.VIEW_CATALOG),
+        JMenu data = new JMenu("Data");
+        data.setMnemonic(KeyEvent.VK_D);
+        item(data, "Katalog Buku", user.hasPermission(Permission.VIEW_CATALOG),
                 () -> new CatalogFrame().setVisible(true));
+        item(data, "Kelola Buku & Eksemplar", user.hasPermission(Permission.MANAGE_COLLECTION),
+                () -> new BookManagementFrame().setVisible(true));
+        item(data, "Kelola Kategori & Penulis", user.hasPermission(Permission.MANAGE_COLLECTION),
+                () -> new CategoryManagementFrame().setVisible(true));
+        item(data, "Kelola Anggota", user.hasPermission(Permission.MANAGE_MEMBERS),
+                () -> new MemberManagementFrame().setVisible(true));
+        addIfNotEmpty(bar, data);
 
-        addNavButton(panel, "🗂  Kelola Koleksi & Anggota",
-                user.hasPermission(Permission.MANAGE_COLLECTION) || user.hasPermission(Permission.MANAGE_MEMBERS),
-                () -> CollectionMenuFrame.open(user));
+        JMenu transaksi = new JMenu("Transaksi");
+        transaksi.setMnemonic(KeyEvent.VK_T);
+        item(transaksi, "Peminjaman", user.hasPermission(Permission.PROCESS_LOAN),
+                () -> new LoanFrame().setVisible(true));
+        item(transaksi, "Pengembalian", user.hasPermission(Permission.PROCESS_RETURN),
+                () -> new ReturnFrame().setVisible(true));
+        item(transaksi, "Antrean", user.hasPermission(Permission.PROCESS_LOAN),
+                () -> new ReservationFrame().setVisible(true));
+        item(transaksi, "Denda", user.hasPermission(Permission.RECORD_FINE_PAYMENT),
+                () -> new FineFrame().setVisible(true));
+        addIfNotEmpty(bar, transaksi);
 
-        addNavButton(panel, "🔄  Peminjaman",
-                user.hasPermission(Permission.PROCESS_LOAN),
-                () -> JOptionPane.showMessageDialog(this, "Modul Peminjaman (Anggota 4)."));
-
-        addNavButton(panel, "↩  Pengembalian",
-                user.hasPermission(Permission.PROCESS_RETURN),
-                () -> JOptionPane.showMessageDialog(this, "Modul Pengembalian (Anggota 4)."));
-
-        addNavButton(panel, "📊  Laporan",
-                user.hasPermission(Permission.VIEW_REPORTS),
+        JMenu laporan = new JMenu("Laporan");
+        laporan.setMnemonic(KeyEvent.VK_L);
+        item(laporan, "Laporan Lengkap", user.hasPermission(Permission.VIEW_REPORTS),
                 () -> new ReportFrame(user).setVisible(true));
+        addIfNotEmpty(bar, laporan);
 
-        addNavButton(panel, "👥  Kelola Pengguna",
-                user.hasPermission(Permission.MANAGE_USERS),
+        JMenu akun = new JMenu("Akun");
+        akun.setMnemonic(KeyEvent.VK_A);
+        item(akun, "Riwayat, Denda & Antrean Saya", user.hasPermission(Permission.VIEW_OWN_HISTORY),
+                () -> new MyAccountFrame(user).setVisible(true));
+        item(akun, "Kelola Pengguna", user.hasPermission(Permission.MANAGE_USERS),
                 () -> new UserManagementFrame().setVisible(true));
+        if (akun.getItemCount() > 0) akun.addSeparator();
+        item(akun, "Keluar", true, this::doLogout);
+        bar.add(akun);
 
-        addNavButton(panel, "📜  Riwayat Saya",
-                user.hasPermission(Permission.VIEW_OWN_HISTORY),
-                () -> JOptionPane.showMessageDialog(this, "Modul Riwayat (Anggota 4)."));
-
-        panel.add(Box.createVerticalGlue());
-
-        addNavButton(panel, "🚪  Logout", true, this::doLogout);
-
-        return panel;
+        return bar;
     }
 
-    private JPanel buildFooter() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(new Color(0xECEFF1));
-        panel.setBorder(BorderFactory.createEmptyBorder(6, 16, 6, 16));
-        JLabel lbl = new JLabel("SmartLib v1.0  |  © 2026  |  Data diperbarui setiap klik Refresh");
-        lbl.setForeground(Color.GRAY);
-        lbl.setFont(lbl.getFont().deriveFont(Font.PLAIN, 11f));
-
-        JButton btnRefresh = new JButton("⟳ Refresh");
-        btnRefresh.addActionListener(e -> refresh());
-        panel.add(lbl, BorderLayout.WEST);
-        panel.add(btnRefresh, BorderLayout.EAST);
-        return panel;
-    }
-
-    // ─────────────────────── Navigasi helper ───────────────────────
-
-    private void addNavLabel(JPanel panel, String text) {
-        JLabel lbl = new JLabel("  " + text);
-        lbl.setForeground(new Color(0x90A4AE));
-        lbl.setFont(lbl.getFont().deriveFont(Font.BOLD, 10f));
-        lbl.setBorder(BorderFactory.createEmptyBorder(8, 12, 4, 0));
-        lbl.setAlignmentX(Component.LEFT_ALIGNMENT);
-        panel.add(lbl);
-    }
-
-    private void addNavButton(JPanel panel, String text, boolean allowed, Runnable action) {
+    private static void item(JMenu menu, String text, boolean allowed, Runnable action) {
         if (!allowed) return;
-        JButton btn = new JButton(text);
-        btn.setAlignmentX(Component.LEFT_ALIGNMENT);
-        btn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
-        btn.setHorizontalAlignment(SwingConstants.LEFT);
-        btn.setFont(btn.getFont().deriveFont(Font.PLAIN, 13f));
-        btn.setBorder(BorderFactory.createEmptyBorder(8, 20, 8, 8));
-        btn.setBackground(new Color(0x263238));
-        btn.setForeground(new Color(0xECEFF1));
-        btn.setFocusPainted(false);
-        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btn.setBorderPainted(false);
-
-        btn.addMouseListener(new java.awt.event.MouseAdapter() {
-            @Override public void mouseEntered(java.awt.event.MouseEvent e) {
-                btn.setBackground(new Color(0x37474F));
-            }
-            @Override public void mouseExited(java.awt.event.MouseEvent e) {
-                btn.setBackground(new Color(0x263238));
-            }
-        });
-        btn.addActionListener(e -> action.run());
-        panel.add(btn);
+        JMenuItem mi = new JMenuItem(text);
+        mi.addActionListener(e -> action.run());
+        menu.add(mi);
     }
 
-    // ─────────────────────── Aksi ───────────────────────
+    private static void addIfNotEmpty(JMenuBar bar, JMenu menu) {
+        if (menu.getItemCount() > 0) bar.add(menu);
+    }
+
+    // ---------- isi jendela ----------
+
+    private JPanel buildContent() {
+        JPanel root = new JPanel(new BorderLayout(0, 8));
+        root.setBorder(BorderFactory.createEmptyBorder(10, 12, 0, 12));
+
+        if (showSummary) {
+            JPanel stats = new JPanel(new GridLayout(1, 4, 8, 0));
+            stats.add(cardBooks);
+            stats.add(cardMembers);
+            stats.add(cardLoans);
+            stats.add(cardOverdue);
+
+            JSplitPane tables = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, overdueTable, mostBorrowedTable);
+            tables.setResizeWeight(0.6);
+            tables.setBorder(null);
+
+            root.add(stats, BorderLayout.NORTH);
+            root.add(tables, BorderLayout.CENTER);
+        } else {
+            JLabel hello = new JLabel("<html>Selamat datang, " + escape(user.getFullName()) + ".<br>"
+                    + "Katalog, riwayat pinjaman, denda, dan antrean Anda dapat dibuka dari menu di atas.</html>");
+            hello.setVerticalAlignment(SwingConstants.TOP);
+            root.add(hello, BorderLayout.CENTER);
+        }
+
+        root.add(buildStatusBar(), BorderLayout.SOUTH);
+        return root;
+    }
+
+    private JPanel buildStatusBar() {
+        JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 4));
+        right.add(lastLoaded);
+        if (showSummary) {
+            JButton reload = new JButton("Muat Ulang");
+            reload.addActionListener(e -> refresh());
+            right.add(reload);
+        }
+
+        JPanel row = new JPanel(new BorderLayout());
+        row.add(new JLabel("Masuk sebagai " + user.getFullName() + " (" + user.getRole().getLabel() + ")"),
+                BorderLayout.WEST);
+        row.add(right, BorderLayout.EAST);
+
+        JPanel bar = new JPanel(new BorderLayout());
+        bar.add(new JSeparator(), BorderLayout.NORTH);
+        bar.add(row, BorderLayout.CENTER);
+        return bar;
+    }
+
+    private static String escape(String s) {
+        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
+    }
+
+    // ---------- aksi ----------
 
     private void refresh() {
-        if (!user.hasPermission(Permission.VIEW_REPORTS)) return;
+        if (!showSummary) return;
+        errorShown = false;
 
         new SwingWorker<DashboardStats, Void>() {
             @Override protected DashboardStats doInBackground() {
@@ -233,13 +188,15 @@ public class DashboardFrame extends JFrame {
                     cardMembers.setValue(String.valueOf(s.totalMembers));
                     cardLoans.setValue(String.valueOf(s.activeLoans));
                     cardOverdue.setValue(String.valueOf(s.overdueLoans));
+                    cardOverdue.setHighlight(s.overdueLoans > 0);
+                    lastLoaded.setText("Dimuat pukul " + LocalTime.now().format(TIME));
                 } catch (Exception ex) {
                     handleError(ex);
                 }
             }
         }.execute();
 
-        new SwingWorker<java.util.List<Object[]>, Void>() {
+        new SwingWorker<List<Object[]>, Void>() {
             @Override protected List<Object[]> doInBackground() {
                 return reportService.overdueLoans();
             }
@@ -261,8 +218,7 @@ public class DashboardFrame extends JFrame {
     }
 
     private void doLogout() {
-        int confirm = JOptionPane.showConfirmDialog(this,
-                "Yakin ingin logout?", "Konfirmasi Logout",
+        int confirm = JOptionPane.showConfirmDialog(this, "Keluar dari SmartLib?", "Konfirmasi",
                 JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
         if (confirm != JOptionPane.YES_OPTION) return;
         authService.logout();
@@ -270,14 +226,14 @@ public class DashboardFrame extends JFrame {
         new LoginFrame().setVisible(true);
     }
 
+    /** Satu dialog saja per pemuatan ulang, walau beberapa kueri gagal bersamaan. */
     private void handleError(Exception ex) {
-        Throwable cause = (ex instanceof java.util.concurrent.ExecutionException)
-                ? ex.getCause() : ex;
-        if (cause instanceof DataAccessException) {
+        Throwable cause = (ex instanceof java.util.concurrent.ExecutionException) ? ex.getCause() : ex;
+        if (cause instanceof DataAccessException && !errorShown) {
+            errorShown = true;
             JOptionPane.showMessageDialog(this,
                     "Tidak dapat terhubung ke database.\n" + cause.getMessage(),
-                    "Error Database", JOptionPane.WARNING_MESSAGE);
+                    "Kesalahan database", JOptionPane.ERROR_MESSAGE);
         }
-        // Error lain diabaikan secara diam-diam (UI tetap tampil)
     }
 }

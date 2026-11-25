@@ -236,3 +236,9 @@ INSERT IGNORE INTO members (member_code, full_name, email, phone, address, join_
 --        SUM(c.status = 'BORROWED')           AS dipinjam
 -- FROM library_items i LEFT JOIN book_copies c ON c.item_id = i.id
 -- WHERE i.item_type = 'BUKU' GROUP BY i.id, i.title;
+
+-- ---------------------------------------------------------------
+-- View book_copies: dipakai ReportDAO (dashboard & laporan).
+-- Wajib ada bila skema dijalankan lewat file terpisah.
+-- ---------------------------------------------------------------
+CREATE OR REPLACE VIEW book_copies AS SELECT * FROM item_copies;
