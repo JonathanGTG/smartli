@@ -1,9 +1,11 @@
 package com.smartlib.service;
 
+import com.smartlib.dao.MemberDAO;
 import com.smartlib.dao.UserDAO;
 import com.smartlib.enums.AccountStatus;
 import com.smartlib.exception.AccessDeniedException;
 import com.smartlib.exception.AuthenticationException;
+import com.smartlib.model.Member;
 import com.smartlib.model.Permission;
 import com.smartlib.model.Role;
 import com.smartlib.model.User;
@@ -11,6 +13,7 @@ import com.smartlib.util.PasswordHasher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDate;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -424,5 +427,83 @@ class AuthServiceTest {
         assertEquals("Mahasiswa Baru Edit", updatedMhs.getFullName());
         assertEquals("Ilmu Komunikasi", updatedMhs.getStudyProgram());
         assertEquals("mhs.edit@smartlib.ac.id", updatedMhs.getEmail());
+    }
+
+    // ---------- Sinkronisasi Status User & Member ----------
+
+    static class FakeMemberDAO extends MemberDAO {
+        final Map<Integer, Member> data = new LinkedHashMap<>();
+        int nextId = 1;
+
+        Member add(String code, String fullName, AccountStatus status, Integer userId) {
+            Member m = new Member(nextId, code, fullName, "", "", "", LocalDate.now(), status, userId);
+            data.put(nextId++, m);
+            return m;
+        }
+
+        @Override public Optional<Member> findById(int id) { return Optional.ofNullable(data.get(id)); }
+        @Override public Optional<Member> findByUserId(int userId) {
+            return data.values().stream().filter(m -> Objects.equals(m.getUserId(), userId)).findFirst();
+        }
+        @Override public void updateStatus(int id, AccountStatus status) {
+            Member existing = data.get(id);
+            if (existing != null) {
+                data.put(id, new Member(existing.getId(), existing.getMemberCode(), existing.getFullName(),
+                        existing.getEmail(), existing.getPhone(), existing.getAddress(),
+                        existing.getJoinDate(), status, existing.getUserId()));
+            }
+        }
+        @Override public int countActiveLoans(int memberId) { return 0; }
+        @Override public int countLoans(int memberId) { return 0; }
+    }
+
+    @Test
+    void nonaktifkanAnggotaIkutMenonaktifkanAkunLoginDanMenolakLogin() {
+        FakeMemberDAO memberDAO = new FakeMemberDAO();
+        AuthService authWithMember = new AuthService(dao, memberDAO);
+        MemberService memberService = new MemberService(authWithMember, memberDAO, dao);
+
+        User anggota = dao.findByUsername("anggota1").orElseThrow();
+        Member member = memberDAO.add("AGT-0001", "Anggota Satu", AccountStatus.ACTIVE, anggota.getId());
+
+        authWithMember.login("admin", "Admin#123".toCharArray());
+        memberService.setActive(member.getId(), false);
+        authWithMember.logout();
+
+        assertEquals(AccountStatus.INACTIVE, memberDAO.findById(member.getId()).orElseThrow().getStatus());
+        assertEquals(AccountStatus.INACTIVE, dao.findById(anggota.getId()).orElseThrow().getStatus());
+        assertThrows(AuthenticationException.class,
+                () -> authWithMember.login("anggota1", "Anggota#123".toCharArray()));
+
+        // Aktifkan kembali -> bisa login lagi
+        authWithMember.login("admin", "Admin#123".toCharArray());
+        memberService.setActive(member.getId(), true);
+        authWithMember.logout();
+
+        assertEquals(AccountStatus.ACTIVE, dao.findById(anggota.getId()).orElseThrow().getStatus());
+        assertNotNull(authWithMember.login("anggota1", "Anggota#123".toCharArray()));
+    }
+
+    @Test
+    void nonaktifkanUserIkutMenonaktifkanMemberDanLoginDitolakJikaMemberNonaktif() {
+        FakeMemberDAO memberDAO = new FakeMemberDAO();
+        AuthService authWithMember = new AuthService(dao, memberDAO);
+
+        User anggota = dao.findByUsername("anggota1").orElseThrow();
+        Member member = memberDAO.add("AGT-0001", "Anggota Satu", AccountStatus.ACTIVE, anggota.getId());
+
+        // Jika di DB member sudah INACTIVE padahal user masih ACTIVE, login tetap ditolak
+        memberDAO.updateStatus(member.getId(), AccountStatus.INACTIVE);
+        assertThrows(AuthenticationException.class,
+                () -> authWithMember.login("anggota1", "Anggota#123".toCharArray()));
+
+        // Aktifkan kembali lalu nonaktifkan dari AuthService (Kelola Pengguna)
+        memberDAO.updateStatus(member.getId(), AccountStatus.ACTIVE);
+        authWithMember.login("admin", "Admin#123".toCharArray());
+        authWithMember.setActive(anggota.getId(), false);
+        authWithMember.logout();
+
+        assertEquals(AccountStatus.INACTIVE, memberDAO.findById(member.getId()).orElseThrow().getStatus());
+        assertEquals(AccountStatus.INACTIVE, dao.findById(anggota.getId()).orElseThrow().getStatus());
     }
 }

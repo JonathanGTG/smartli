@@ -1,6 +1,7 @@
 package com.smartlib.service;
 
 import com.smartlib.dao.MemberDAO;
+import com.smartlib.dao.UserDAO;
 import com.smartlib.enums.AccountStatus;
 import com.smartlib.model.Member;
 import com.smartlib.model.Permission;
@@ -23,15 +24,20 @@ public class MemberService {
 
     private final AuthService authService;
     private final MemberDAO memberDAO;
+    private final UserDAO userDAO;
 
     public MemberService() {
-        this(AuthService.getInstance(), new MemberDAO());
+        this(AuthService.getInstance(), new MemberDAO(), new UserDAO());
     }
 
     public MemberService(AuthService authService, MemberDAO memberDAO) {
+        this(authService, memberDAO, null);
+    }
+
+    public MemberService(AuthService authService, MemberDAO memberDAO, UserDAO userDAO) {
         this.authService = authService;
         this.memberDAO = memberDAO;
-
+        this.userDAO = userDAO;
     }
 
 
@@ -114,7 +120,9 @@ public class MemberService {
         Member member = memberDAO.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Anggota tidak ditemukan."));
         if (!active) requireNoActiveLoans(member);
-        memberDAO.updateStatus(id, active ? AccountStatus.ACTIVE : AccountStatus.INACTIVE);
+        AccountStatus newStatus = active ? AccountStatus.ACTIVE : AccountStatus.INACTIVE;
+        memberDAO.updateStatus(id, newStatus);
+        syncLinkedUserStatus(member, newStatus);
     }
 
     /**
@@ -130,6 +138,7 @@ public class MemberService {
         requireNoActiveLoans(member);
         if (memberDAO.countLoans(id) > 0) {
             memberDAO.updateStatus(id, AccountStatus.INACTIVE);
+            syncLinkedUserStatus(member, AccountStatus.INACTIVE);
             return DeleteResult.DEACTIVATED;
         }
         memberDAO.delete(id);
@@ -137,6 +146,12 @@ public class MemberService {
     }
 
     // ---------- helper ----------
+
+    private void syncLinkedUserStatus(Member member, AccountStatus status) {
+        if (userDAO != null && member.getUserId() != null) {
+            userDAO.updateStatus(member.getUserId(), status);
+        }
+    }
 
     private void requireNoActiveLoans(Member member) {
         int active = memberDAO.countActiveLoans(member.getId());

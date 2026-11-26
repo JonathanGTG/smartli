@@ -117,6 +117,15 @@ public class AuthService {
             );
         }
 
+        if (memberDAO != null && user.getRole() == Role.ANGGOTA) {
+            Optional<Member> linkedMember = memberDAO.findByUserId(user.getId());
+            if (linkedMember.isPresent() && !linkedMember.get().isActive()) {
+                throw new AuthenticationException(
+                        "Keanggotaan Anda tidak aktif. Hubungi Petugas atau Admin."
+                );
+            }
+        }
+
         userDAO.updateLastLogin(user.getId());
 
         ensureMemberLinked(user);
@@ -291,10 +300,20 @@ public class AuthService {
 
     // ================= PROFILE =================
 
+    public Optional<Member> getMyMemberProfile() {
+        User user = currentUser;
+        if (user == null || memberDAO == null) {
+            return Optional.empty();
+        }
+        return memberDAO.findByUserId(user.getId());
+    }
+
     public User updateMyProfile(
             String fullName,
             String studyProgram,
-            String email
+            String email,
+            String phone,
+            String address
     ) {
 
         User user = requireLogin();
@@ -343,7 +362,46 @@ public class AuthService {
         user.setStudyProgram(cleanProdi);
         user.setEmail(cleanEmail);
 
+        // Sinkronkan ke tabel members jika akun ini terhubung dengan data keanggotaan
+        if (memberDAO != null) {
+            Optional<Member> memberOpt = memberDAO.findByUserId(user.getId());
+            if (memberOpt.isEmpty() && user.getRole() == Role.ANGGOTA) {
+                ensureMemberLinked(user);
+                memberOpt = memberDAO.findByUserId(user.getId());
+            }
+
+            if (memberOpt.isPresent()) {
+                Member member = memberOpt.get();
+                member.setFullName(fullName.trim());
+                member.setEmail(cleanEmail);
+
+                if (phone != null) {
+                    String cleanPhone = phone.trim().replaceAll("[\\s-]", "");
+                    if (!cleanPhone.isEmpty() && memberDAO.existsByPhone(cleanPhone, member.getId())) {
+                        throw new IllegalArgumentException(
+                                "Nomor telepon '" + phone.trim() + "' sudah terdaftar pada anggota lain."
+                        );
+                    }
+                    member.setPhone(phone);
+                }
+
+                if (address != null) {
+                    member.setAddress(address);
+                }
+
+                memberDAO.update(member);
+            }
+        }
+
         return user;
+    }
+
+    public User updateMyProfile(
+            String fullName,
+            String studyProgram,
+            String email
+    ) {
+        return updateMyProfile(fullName, studyProgram, email, null, null);
     }
 
     // ================= UBAH PASSWORD =================
@@ -651,12 +709,19 @@ public class AuthService {
             }
         }
 
+        AccountStatus newStatus = active
+                ? AccountStatus.ACTIVE
+                : AccountStatus.INACTIVE;
+
         userDAO.updateStatus(
                 userId,
-                active
-                        ? AccountStatus.ACTIVE
-                        : AccountStatus.INACTIVE
+                newStatus
         );
+
+        if (memberDAO != null) {
+            memberDAO.findByUserId(userId)
+                    .ifPresent(member -> memberDAO.updateStatus(member.getId(), newStatus));
+        }
     }
 
     // ================= RESET PASSWORD =================

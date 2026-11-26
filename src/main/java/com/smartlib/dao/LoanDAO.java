@@ -18,7 +18,7 @@ public final class LoanDAO {
 
     public static MemberData lockAndValidateMember(Connection connection, long memberId) throws SQLException {
         String sql = """
-                SELECT m.valid_until, COALESCE(u.status, m.status) AS account_status
+                SELECT m.valid_until, m.status AS member_status, u.status AS user_status
                 FROM members m
                 LEFT JOIN users u ON u.id = m.user_id
                 WHERE m.id = ?
@@ -30,10 +30,14 @@ public final class LoanDAO {
                 if (!rs.next()) {
                     return new MemberData(false, "Data anggota tidak ditemukan.");
                 }
-                String accountStatus = rs.getString("account_status");
+                String memberStatus = rs.getString("member_status");
+                String userStatus = rs.getString("user_status");
                 Date validUntil = rs.getDate("valid_until");
-                if (accountStatus == null || !"ACTIVE".equalsIgnoreCase(accountStatus)) {
-                    return new MemberData(false, "Akun anggota tidak aktif.");
+                if (memberStatus == null || !"ACTIVE".equalsIgnoreCase(memberStatus)) {
+                    return new MemberData(false, "Status keanggotaan tidak aktif.");
+                }
+                if (userStatus != null && !"ACTIVE".equalsIgnoreCase(userStatus)) {
+                    return new MemberData(false, "Akun pengguna anggota tidak aktif.");
                 }
                 if (validUntil != null && validUntil.toLocalDate().isBefore(LocalDate.now())) {
                     return new MemberData(false, "Masa berlaku keanggotaan sudah berakhir.");

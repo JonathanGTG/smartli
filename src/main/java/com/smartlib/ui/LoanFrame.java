@@ -108,7 +108,11 @@ public class LoanFrame extends JFrame {
         cbCopy.removeAllItems();
 
         try (Connection conn = DatabaseConnection.getConnection()) {
-            String sqlMember = "SELECT id, member_code, full_name FROM members WHERE status = 'ACTIVE' ORDER BY member_code ASC";
+            String sqlMember = "SELECT m.id, m.member_code, m.full_name "
+                    + "FROM members m "
+                    + "LEFT JOIN users u ON u.id = m.user_id "
+                    + "WHERE m.status = 'ACTIVE' AND (u.status IS NULL OR u.status = 'ACTIVE') "
+                    + "ORDER BY m.member_code ASC";
             try (PreparedStatement ps = conn.prepareStatement(sqlMember);
                  ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {

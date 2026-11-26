@@ -25,6 +25,8 @@ public class ManageAccountFrame extends JFrame {
     private final JTextField txtFullName = new JTextField(20);
     private final JTextField txtStudyProgram = new JTextField(20);
     private final JTextField txtEmail = new JTextField(20);
+    private final JTextField txtPhone = new JTextField(20);
+    private final JTextField txtAddress = new JTextField(20);
 
     private final JPasswordField txtOldPassword = new JPasswordField(20);
     private final JPasswordField txtNewPassword = new JPasswordField(20);
@@ -95,6 +97,8 @@ public class ManageAccountFrame extends JFrame {
         addRow(form, gc, row++, "Nama Lengkap *:", txtFullName);
         addRow(form, gc, row++, "Program Studi *:", txtStudyProgram);
         addRow(form, gc, row++, "Email *:", txtEmail);
+        addRow(form, gc, row++, "Nomor Telepon / HP:", txtPhone);
+        addRow(form, gc, row++, "Alamat Tempat Tinggal:", txtAddress);
 
         panel.add(form, BorderLayout.CENTER);
 
@@ -163,6 +167,11 @@ public class ManageAccountFrame extends JFrame {
             txtFullName.setText(u.getFullName());
             txtStudyProgram.setText(u.getStudyProgram() != null ? u.getStudyProgram() : "");
             txtEmail.setText(u.getEmail() != null ? u.getEmail() : "");
+
+            authService.getMyMemberProfile().ifPresent(m -> {
+                txtPhone.setText(m.getPhone() != null ? m.getPhone() : "");
+                txtAddress.setText(m.getAddress() != null ? m.getAddress() : "");
+            });
         });
     }
 
@@ -170,6 +179,8 @@ public class ManageAccountFrame extends JFrame {
         final String newName = txtFullName.getText().trim();
         final String newProdi = txtStudyProgram.getText().trim();
         final String newEmail = txtEmail.getText().trim();
+        final String newPhone = txtPhone.getText().trim();
+        final String newAddress = txtAddress.getText().trim();
 
         if (newName.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Nama lengkap tidak boleh kosong.",
@@ -178,7 +189,7 @@ public class ManageAccountFrame extends JFrame {
         }
 
         try {
-            User updated = authService.updateMyProfile(newName, newProdi, newEmail);
+            User updated = authService.updateMyProfile(newName, newProdi, newEmail, newPhone, newAddress);
             JOptionPane.showMessageDialog(this, "Profil akun berhasil diperbarui!",
                     "Sukses", JOptionPane.INFORMATION_MESSAGE);
             loadUserData();
