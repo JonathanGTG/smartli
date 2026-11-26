@@ -73,10 +73,15 @@ class CopyManagerDialog extends JDialog {
                 new ItemStatus[]{ItemStatus.AVAILABLE, ItemStatus.DAMAGED, ItemStatus.LOST});
         JTextField tfShelf = new JTextField(18);
         JPanel form = UiKit.form("Barcode", tfBarcode, "Status", cbStatus, "Lokasi rak", tfShelf);
+        BookCopy[] added = new BookCopy[1];
         if (UiKit.editDialog(this, "Tambah Eksemplar", form, () ->
-                service.addCopy(book.getId(), tfBarcode.getText(), (ItemStatus) cbStatus.getSelectedItem(),
+                added[0] = service.addCopy(book.getId(), tfBarcode.getText(), (ItemStatus) cbStatus.getSelectedItem(),
                         tfShelf.getText()))) {
             reload();
+            if (added[0] != null && added[0].getStatus() == ItemStatus.RESERVED) {
+                UiKit.info(this, "Eksemplar baru berhasil ditambahkan dan langsung dialokasikan "
+                        + "(Dicadangkan / RESERVED) untuk anggota pada antrean FIFO terdepan (batas 24 jam).");
+            }
         }
     }
 
@@ -92,6 +97,12 @@ class CopyManagerDialog extends JDialog {
                 service.updateCopy(copy.getId(), tfBarcode.getText(), (ItemStatus) cbStatus.getSelectedItem(),
                         tfShelf.getText()))) {
             reload();
+            boolean offered = copies.stream()
+                    .anyMatch(c -> c.getId() == copy.getId() && c.getStatus() == ItemStatus.RESERVED);
+            if (cbStatus.getSelectedItem() == ItemStatus.AVAILABLE && offered) {
+                UiKit.info(this, "Eksemplar yang kini tersedia langsung dialokasikan "
+                        + "(Dicadangkan / RESERVED) untuk anggota pada antrean FIFO terdepan (batas 24 jam).");
+            }
         }
     }
 
