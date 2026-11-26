@@ -1,6 +1,7 @@
 package com.smartlib.ui;
 
 import com.smartlib.model.*;
+import com.smartlib.enums.ItemStatus;
 import com.smartlib.service.AuthService;
 import com.smartlib.service.BookService;
 import com.smartlib.service.MemberService;
