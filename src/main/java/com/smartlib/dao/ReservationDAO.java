@@ -27,6 +27,22 @@ public final class ReservationDAO {
         }
     }
 
+    public static boolean hasReservedCopy(Connection connection, long itemId) throws SQLException {
+        String sql = "SELECT EXISTS(SELECT 1 FROM item_copies WHERE item_id = ? AND status = 'RESERVED')";
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setLong(1, itemId);
+            try (ResultSet rs = ps.executeQuery()) { rs.next(); return rs.getBoolean(1); }
+        }
+    }
+
+    public static boolean hasBorrowedCopy(Connection connection, long itemId) throws SQLException {
+        String sql = "SELECT EXISTS(SELECT 1 FROM item_copies WHERE item_id = ? AND status = 'BORROWED')";
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setLong(1, itemId);
+            try (ResultSet rs = ps.executeQuery()) { rs.next(); return rs.getBoolean(1); }
+        }
+    }
+
     public static boolean hasWaitingReservation(Connection connection, long itemId) throws SQLException {
         String sql = "SELECT EXISTS(SELECT 1 FROM reservations WHERE item_id = ? AND status = 'WAITING')";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
