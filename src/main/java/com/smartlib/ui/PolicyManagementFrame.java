@@ -46,10 +46,7 @@ public class PolicyManagementFrame extends JFrame {
         addRow(form, c, 2, "Tarif Denda Keterlambatan (Rp/Hari):", tfFineRate);
         addRow(form, c, 3, "Strategi Perhitungan Denda:", cbPolicyStrategy);
 
-        JButton btnSave = new JButton("Simpan Kebijakan Baru");
-        btnSave.setBackground(new Color(0x1976D2));
-        btnSave.setForeground(Color.WHITE);
-        btnSave.setFont(btnSave.getFont().deriveFont(Font.BOLD, 13f));
+        JButton btnSave = UiKit.accentButton("Simpan Kebijakan Baru", new Color(0x1976D2));
         btnSave.addActionListener(e -> savePolicy());
 
         c.gridx = 0; c.gridy = 4; c.gridwidth = 2;

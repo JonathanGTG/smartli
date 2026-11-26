@@ -6,6 +6,8 @@ import com.smartlib.service.FineService;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.text.NumberFormat;
 import java.util.List;
 import java.util.Locale;
@@ -38,6 +40,10 @@ public class FineFrame extends JFrame {
         paidButton.addActionListener(e -> markSelectedFinePaid());
         JPanel bottom = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         bottom.add(paidButton);
+
+        JButton waiveButton = new JButton("Bebaskan Denda (WAIVED)");
+        waiveButton.addActionListener(e -> markSelectedFineWaived());
+        bottom.add(waiveButton);
 
         add(top, BorderLayout.NORTH);
         add(new JScrollPane(table), BorderLayout.CENTER);
@@ -81,6 +87,29 @@ public class FineFrame extends JFrame {
             }
         } catch (Exception ex) {
             showError("Gagal memperbarui pembayaran: " + ex.getMessage());
+        }
+    }
+
+    private void markSelectedFineWaived() {
+        int row = table.getSelectedRow();
+        if (row < 0) { showError("Pilih baris denda yang akan dibebaskan."); return; }
+        long fineId = Long.parseLong(tableModel.getValueAt(row, 0).toString());
+        int confirm = JOptionPane.showConfirmDialog(this,
+                "Bebaskan denda ID " + fineId + " (Status WAIVED)?",
+                "Konfirmasi Pembebasan", JOptionPane.YES_NO_OPTION);
+        if (confirm == JOptionPane.YES_OPTION) {
+            try (Connection c = com.smartlib.config.DatabaseConnection.getConnection();
+                 PreparedStatement ps = c.prepareStatement("UPDATE fines SET status = 'WAIVED', paid_at = NOW() WHERE id = ? AND status = 'UNPAID'")) {
+                ps.setLong(1, fineId);
+                if (ps.executeUpdate() == 1) {
+                    JOptionPane.showMessageDialog(this, "Denda berhasil dibebaskan (status WAIVED).");
+                    loadFines();
+                } else {
+                    showError("Denda tidak ditemukan atau sudah diproses.");
+                }
+            } catch (Exception ex) {
+                showError("Gagal membebaskan denda: " + ex.getMessage());
+            }
         }
     }
 

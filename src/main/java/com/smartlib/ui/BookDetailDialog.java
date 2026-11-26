@@ -64,9 +64,7 @@ final class BookDetailDialog {
 
         // Tombol Reservasi / Antrean jika stok habis
         if (summary.availableCopies() == 0 && summary.totalCopies() > 0) {
-            JButton btnQueue = new JButton("📌 Ajukan Antrean (FIFO)");
-            btnQueue.setBackground(new Color(0xE65100));
-            btnQueue.setForeground(Color.WHITE);
+            JButton btnQueue = UiKit.accentButton("📌 Ajukan Antrean (FIFO)", new Color(0xE65100));
             btnQueue.addActionListener(e -> {
                 Optional<User> currentUser = AuthService.getInstance().getCurrentUser();
                 if (currentUser.isEmpty()) {
