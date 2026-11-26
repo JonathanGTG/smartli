@@ -40,16 +40,16 @@ public class DashboardFrame extends JFrame {
     private final Integer memberId;
 
     private final StatCard cardMyLoans =
-            new StatCard("Pinjaman aktif");
+            new StatCard("Pinjaman aktif", Theme.BLUE);
 
     private final StatCard cardMyQueue =
-            new StatCard("Antrean aktif");
+            new StatCard("Antrean aktif", Theme.GOLD);
 
     private final StatCard cardMyReady =
-            new StatCard("Buku siap diambil");
+            new StatCard("Buku siap diambil", Theme.SUCCESS);
 
     private final StatCard cardMyFines =
-            new StatCard("Denda belum dibayar");
+            new StatCard("Denda belum dibayar", Theme.DANGER);
 
     private final ReportTablePanel myLoansTable =
             new ReportTablePanel(
@@ -59,16 +59,16 @@ public class DashboardFrame extends JFrame {
 
     // Statistik dashboard
     private final StatCard cardBooks =
-            new StatCard("Judul koleksi");
+            new StatCard("Judul koleksi", Theme.NAVY_700);
 
     private final StatCard cardMembers =
-            new StatCard("Anggota");
+            new StatCard("Anggota", Theme.BLUE);
 
     private final StatCard cardLoans =
-            new StatCard("Pinjaman aktif");
+            new StatCard("Pinjaman aktif", Theme.BLUE);
 
     private final StatCard cardOverdue =
-            new StatCard("Terlambat");
+            new StatCard("Terlambat", Theme.DANGER);
 
     // Tabel peminjaman terlambat
     private final ReportTablePanel overdueTable =
@@ -171,10 +171,10 @@ public class DashboardFrame extends JFrame {
 
         sidebar.setPreferredSize(new Dimension(230, 0));
 
-        sidebar.setBackground(new Color(35, 45, 60));
+        sidebar.setBackground(Theme.NAVY_950);
 
         sidebar.setBorder(
-                BorderFactory.createEmptyBorder(15, 10, 15, 10)
+                BorderFactory.createEmptyBorder(22, 14, 16, 14)
         );
 
 
@@ -183,11 +183,11 @@ public class DashboardFrame extends JFrame {
 
         header.setLayout(new BoxLayout(header, BoxLayout.Y_AXIS));
 
-        header.setBackground(new Color(35, 45, 60));
+        header.setBackground(Theme.NAVY_950);
 
         JLabel title = new JLabel("📚 SmartLib");
 
-        title.setFont(new Font("SansSerif", Font.BOLD, 22));
+        title.setFont(Theme.font(Font.BOLD, 22f));
 
         title.setForeground(Color.WHITE);
 
@@ -198,7 +198,7 @@ public class DashboardFrame extends JFrame {
 
         subtitle.setFont(new Font("SansSerif", Font.PLAIN, 11));
 
-        subtitle.setForeground(new Color(190, 200, 215));
+        subtitle.setForeground(new Color(0x9FB2D3));
 
         subtitle.setAlignmentX(Component.LEFT_ALIGNMENT);
 
@@ -209,7 +209,16 @@ public class DashboardFrame extends JFrame {
 
         header.add(subtitle);
 
-        header.add(Box.createVerticalStrut(25));
+        header.add(Box.createVerticalStrut(10));
+
+        JLabel gold = new JLabel(" ");
+        gold.setOpaque(true);
+        gold.setBackground(Theme.GOLD);
+        gold.setPreferredSize(new Dimension(36, 3));
+        gold.setMaximumSize(new Dimension(36, 3));
+        gold.setAlignmentX(Component.LEFT_ALIGNMENT);
+        header.add(gold);
+        header.add(Box.createVerticalStrut(22));
 
 
         // Panel menu
@@ -217,7 +226,7 @@ public class DashboardFrame extends JFrame {
 
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
 
-        panel.setBackground(new Color(35, 45, 60));
+        panel.setBackground(Theme.NAVY_950);
 
 
         // =========================
@@ -347,9 +356,9 @@ public class DashboardFrame extends JFrame {
 
         scrollPane.setBorder(null);
 
-        scrollPane.setBackground(new Color(35, 45, 60));
+        scrollPane.setBackground(Theme.NAVY_950);
 
-        scrollPane.getViewport().setBackground(new Color(35, 45, 60));
+        scrollPane.getViewport().setBackground(Theme.NAVY_950);
 
         scrollPane.setHorizontalScrollBarPolicy(
                 JScrollPane.HORIZONTAL_SCROLLBAR_NEVER
@@ -366,7 +375,7 @@ public class DashboardFrame extends JFrame {
 
         JPanel footer = new JPanel(new BorderLayout());
 
-        footer.setBackground(new Color(35, 45, 60));
+        footer.setBackground(Theme.NAVY_950);
 
         footer.add(logoutButton, BorderLayout.CENTER);
 
@@ -408,7 +417,7 @@ public class DashboardFrame extends JFrame {
 
         panel.add(button);
 
-        panel.add(Box.createVerticalStrut(5));
+        panel.add(Box.createVerticalStrut(3));
     }
 
 
@@ -416,53 +425,38 @@ public class DashboardFrame extends JFrame {
     // STYLE TOMBOL SIDEBAR
     // =========================
 
-    private static final Color NAV_BG = new Color(50, 65, 85);
-    private static final Color NAV_HOVER = new Color(70, 90, 118);
-    private static final Color NAV_PRESSED = new Color(30, 40, 55);
+    private static final Color NAV_BG = Theme.NAVY_950;
+    private static final Color NAV_HOVER = Theme.NAVY_800;
+    private static final Color NAV_PRESSED = Theme.NAVY_700;
+    private static final Color NAV_ACTIVE = new Color(0x112A52);
+
+    private boolean firstNavStyled;
 
     private void styleNavButton(JButton button) {
 
+        // Tombol pertama (Dashboard) ditandai aktif dengan garis emas di kiri
+        final boolean active = !firstNavStyled && button.getText().contains("Dashboard");
+        if (active) firstNavStyled = true;
+        final Color rest = active ? NAV_ACTIVE : NAV_BG;
+
         // BasicButtonUI: supaya warna tombol dihormati di semua Look and Feel
-        // (Windows LAF mengabaikan setBackground sehingga tombol jadi putih)
         button.setUI(new BasicButtonUI());
 
-        button.setFont(
-                new Font("SansSerif", Font.PLAIN, 13)
-        );
-
-        button.setForeground(Color.WHITE);
-
-        button.setBackground(NAV_BG);
-
+        button.setFont(Theme.font(Font.PLAIN, 13f));
+        button.setForeground(active ? Color.WHITE : new Color(0xD3DDF0));
+        button.setBackground(rest);
         button.setOpaque(true);
-
         button.setRolloverEnabled(true);
-
         button.setContentAreaFilled(true);
-
         button.setBorderPainted(false);
-
         button.setFocusPainted(false);
-
-        button.setBorder(
-                BorderFactory.createEmptyBorder(
-                        12, 10, 12, 10
-                )
-        );
-
-        button.setHorizontalAlignment(
-                SwingConstants.LEFT
-        );
-
+        button.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 4, 0, 0, active ? Theme.GOLD : rest),
+                BorderFactory.createEmptyBorder(11, 12, 11, 10)));
+        button.setHorizontalAlignment(SwingConstants.LEFT);
         button.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        button.setMaximumSize(
-                new Dimension(Integer.MAX_VALUE, 45)
-        );
-
-        button.setCursor(
-                new Cursor(Cursor.HAND_CURSOR)
-        );
+        button.setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
         // Efek hover & tekan
         button.getModel().addChangeListener(e -> {
@@ -470,8 +464,10 @@ public class DashboardFrame extends JFrame {
                 button.setBackground(NAV_PRESSED);
             } else if (button.getModel().isRollover()) {
                 button.setBackground(NAV_HOVER);
+                button.setForeground(Color.WHITE);
             } else {
-                button.setBackground(NAV_BG);
+                button.setBackground(rest);
+                button.setForeground(active ? Color.WHITE : new Color(0xD3DDF0));
             }
         });
     }
@@ -485,53 +481,55 @@ public class DashboardFrame extends JFrame {
 
         JPanel root = new JPanel(new BorderLayout(10, 10));
 
-        root.setBackground(new Color(245, 247, 250));
+        root.setBackground(Theme.BG);
 
         root.setBorder(
                 BorderFactory.createEmptyBorder(
-                        20, 20, 15, 20
+                        20, 22, 14, 22
                 )
         );
 
 
-        // Header dashboard
-        JPanel header = new JPanel();
+        // Header dashboard: banner gradasi navy
+        JPanel header = new Theme.HeroPanel(Theme.NAVY_900, Theme.NAVY_700, true);
 
         header.setLayout(new BoxLayout(header, BoxLayout.Y_AXIS));
 
-        header.setOpaque(false);
+        header.setBorder(BorderFactory.createEmptyBorder(22, 28, 22, 28));
 
 
         JLabel welcome = new JLabel(
                 "Selamat datang, " + user.getFullName()
         );
 
-        welcome.setFont(
-                new Font("SansSerif", Font.BOLD, 24)
-        );
+        welcome.setFont(Theme.font(Font.BOLD, 24f));
+
+        welcome.setForeground(Color.WHITE);
 
 
         JLabel description = new JLabel(
-                "Dashboard Sistem Manajemen Perpustakaan SmartLib"
+                user.getRole().getLabel()
+                        + "  |  Sistem Manajemen Perpustakaan SmartLib"
         );
 
-        description.setFont(
-                new Font("SansSerif", Font.PLAIN, 13)
-        );
+        description.setFont(Theme.font(Font.PLAIN, 13f));
 
-        description.setForeground(Color.GRAY);
+        description.setForeground(new Color(0xBFCDE8));
 
 
         header.add(welcome);
 
-        header.add(Box.createVerticalStrut(5));
+        header.add(Box.createVerticalStrut(6));
 
         header.add(description);
 
-        header.add(Box.createVerticalStrut(15));
 
+        JPanel headerWrap = new JPanel(new BorderLayout());
+        headerWrap.setOpaque(false);
+        headerWrap.setBorder(BorderFactory.createEmptyBorder(0, 0, 4, 0));
+        headerWrap.add(header, BorderLayout.CENTER);
 
-        root.add(header, BorderLayout.NORTH);
+        root.add(headerWrap, BorderLayout.NORTH);
 
 
         // Jika user memiliki permission laporan
@@ -643,7 +641,7 @@ public class DashboardFrame extends JFrame {
 
             // Dashboard untuk user tanpa permission laporan
             JLabel hello = new JLabel(
-                    "<html><div style='padding:10px;'>"
+                    "<html><div style='padding:10px;color:#14305E;'>"
                             + "<h2>Selamat datang di SmartLib!</h2>"
                             + "<p>Silakan pilih menu pada sidebar "
                             + "untuk mulai menggunakan sistem.</p>"
@@ -683,7 +681,9 @@ public class DashboardFrame extends JFrame {
         // Tombol refresh statistik
         if (showSummary || showMemberSummary) {
 
-            JButton reload = new JButton("🔄 Muat Ulang");
+            JButton reload = UiKit.accentButton("🔄 Muat Ulang", Theme.NAVY_700);
+
+            reload.setBorder(BorderFactory.createEmptyBorder(5, 14, 5, 14));
 
             reload.addActionListener(e -> refresh());
 
@@ -719,9 +719,13 @@ public class DashboardFrame extends JFrame {
         );
 
 
+        row.setOpaque(false);
+
         JPanel bar = new JPanel(
                 new BorderLayout()
         );
+
+        bar.setBackground(Color.WHITE);
 
         bar.add(
                 new JSeparator(),

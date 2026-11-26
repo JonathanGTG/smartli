@@ -35,8 +35,12 @@ public class MemberHistoryFrame extends JFrame {
         setLocationRelativeTo(null);
 
         JTabbedPane tabs = new JTabbedPane();
-        tabs.addTab("📖 Pinjaman Aktif & Riwayat", new JScrollPane(new JTable(loanModel)));
-        tabs.addTab("💰 Informasi Denda Keterlambatan", new JScrollPane(new JTable(fineModel)));
+        JTable loanTable = new JTable(loanModel);
+        JTable fineTable = new JTable(fineModel);
+        Theme.styleTable(loanTable);
+        Theme.styleTable(fineTable);
+        tabs.addTab("📖 Pinjaman Aktif & Riwayat", Theme.scroll(loanTable));
+        tabs.addTab("💰 Informasi Denda Keterlambatan", Theme.scroll(fineTable));
         add(tabs, BorderLayout.CENTER);
 
         loadData(user);

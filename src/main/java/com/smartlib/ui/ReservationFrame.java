@@ -124,7 +124,7 @@ public class ReservationFrame extends JFrame {
         c.gridx = 1; c.gridwidth = 2; c.weightx = 1.0;
         addPanel.add(cbBook, c);
 
-        JButton btnJoin = UiKit.accentButton("+ Masuk Antrean", new Color(25, 118, 210));
+        JButton btnJoin = UiKit.accentButton("+ Masuk Antrean", Theme.NAVY_700);
         btnJoin.addActionListener(e -> joinQueue());
         c.gridx = 3; c.gridwidth = 1; c.weightx = 0;
         addPanel.add(btnJoin, c);
@@ -156,7 +156,7 @@ public class ReservationFrame extends JFrame {
         // ===== PANEL TENGAH: TABEL ANTREAN AKTIF =====
         table.setRowSorter(sorter);
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        table.setRowHeight(28);
+        Theme.styleTable(table);
         table.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
                 updateSelectionLabel();
@@ -183,7 +183,7 @@ public class ReservationFrame extends JFrame {
         JButton btnCancel = UiKit.accentButton("✕ Batalkan Antrean Terpilih", new Color(198, 40, 40));
         btnCancel.addActionListener(e -> cancelSelectedQueue());
 
-        JButton btnAccept = UiKit.accentButton("✓ Terima Penawaran & Pinjam", new Color(46, 125, 50));
+        JButton btnAccept = UiKit.accentButton("✓ Terima Penawaran & Pinjam", Theme.BLUE);
         btnAccept.addActionListener(e -> acceptSelectedOffer());
 
         actionButtons.add(btnExpire);

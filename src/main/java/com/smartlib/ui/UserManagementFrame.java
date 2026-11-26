@@ -30,7 +30,7 @@ public class UserManagementFrame extends JFrame {
 
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        table.setRowHeight(24);
+        Theme.styleTable(table);
 
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 8));
         buttons.add(button("Tambah", this::onAdd));

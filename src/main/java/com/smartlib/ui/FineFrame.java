@@ -45,6 +45,7 @@ public class FineFrame extends JFrame {
         waiveButton.addActionListener(e -> markSelectedFineWaived());
         bottom.add(waiveButton);
 
+        Theme.styleTable(table);
         add(top, BorderLayout.NORTH);
         add(new JScrollPane(table), BorderLayout.CENTER);
         add(bottom, BorderLayout.SOUTH);

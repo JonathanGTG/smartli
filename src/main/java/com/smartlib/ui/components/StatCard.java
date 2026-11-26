@@ -1,29 +1,47 @@
 package com.smartlib.ui.components;
 
+import com.smartlib.ui.Theme;
+
 import javax.swing.*;
 import java.awt.*;
 
-/** Kotak ringkasan sederhana: label kecil di atas, angka di bawahnya. Dipakai di DashboardFrame. */
-public class StatCard extends JPanel {
-
-    private static final Color WARNING = new Color(0xB71C1C);
+/** Kartu ringkasan: label kecil di atas, angka besar di bawahnya, dengan strip aksen di kiri. */
+public class StatCard extends Theme.CardPanel {
 
     private final JLabel valueLabel = new JLabel("-");
-    private final Color normalColor;
+    private final Color accent;
 
     public StatCard(String title) {
-        setLayout(new BorderLayout(0, 2));
-        Color line = UIManager.getColor("Separator.foreground");
-        if (line == null) line = Color.LIGHT_GRAY;
-        setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(line),
-                BorderFactory.createEmptyBorder(8, 12, 8, 12)));
+        this(title, Theme.BLUE);
+    }
 
-        valueLabel.setFont(valueLabel.getFont().deriveFont(Font.BOLD, 20f));
-        normalColor = valueLabel.getForeground();
+    public StatCard(String title, Color accent) {
+        super(new BorderLayout(0, 4), 14);
+        this.accent = accent;
 
-        add(new JLabel(title), BorderLayout.NORTH);
-        add(valueLabel, BorderLayout.CENTER);
+        JPanel inner = new JPanel(new BorderLayout(0, 4));
+        inner.setOpaque(false);
+        inner.setBorder(BorderFactory.createEmptyBorder(14, 22, 14, 14));
+
+        JLabel name = new JLabel(title);
+        name.setFont(Theme.font(Font.PLAIN, 12f));
+        name.setForeground(Theme.MUTED);
+
+        valueLabel.setFont(Theme.font(Font.BOLD, 28f));
+        valueLabel.setForeground(Theme.NAVY_900);
+
+        inner.add(name, BorderLayout.NORTH);
+        inner.add(valueLabel, BorderLayout.CENTER);
+        add(inner, BorderLayout.CENTER);
+    }
+
+    @Override protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        Graphics2D g2 = (Graphics2D) g.create();
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.setColor(accent);
+        g2.fillRoundRect(3, 14, 5, getHeight() - 36, 5, 5);
+        g2.dispose();
     }
 
     public void setValue(String value) {
@@ -32,6 +50,6 @@ public class StatCard extends JPanel {
 
     /** Menandai angka dengan warna merah (mis. ada keterlambatan) atau mengembalikannya ke normal. */
     public void setHighlight(boolean on) {
-        valueLabel.setForeground(on ? WARNING : normalColor);
+        valueLabel.setForeground(on ? Theme.DANGER : Theme.NAVY_900);
     }
 }

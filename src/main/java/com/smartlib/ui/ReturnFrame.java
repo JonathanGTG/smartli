@@ -44,7 +44,7 @@ public class ReturnFrame extends JFrame {
 
         table.setRowSorter(sorter);
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        table.setRowHeight(28);
+        Theme.styleTable(table);
 
         JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
         topPanel.add(new JLabel("Cari Peminjaman:"));
@@ -71,7 +71,7 @@ public class ReturnFrame extends JFrame {
         lblSelected.setFont(lblSelected.getFont().deriveFont(Font.BOLD, 12f));
         bottomPanel.add(lblSelected, BorderLayout.CENTER);
 
-        JButton btnProcess = UiKit.accentButton("↩ Proses Pengembalian Buku", new Color(46, 125, 50));
+        JButton btnProcess = UiKit.accentButton("↩ Proses Pengembalian Buku", Theme.NAVY_700);
         btnProcess.setFont(btnProcess.getFont().deriveFont(Font.BOLD, 13f));
         btnProcess.setPreferredSize(new Dimension(250, 40));
         btnProcess.addActionListener(e -> processReturn());

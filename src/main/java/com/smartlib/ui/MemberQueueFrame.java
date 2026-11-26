@@ -46,7 +46,7 @@ public class MemberQueueFrame extends JFrame {
         setSize(840, 480);
         setLocationRelativeTo(null);
 
-        table.setRowHeight(28);
+        Theme.styleTable(table);
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
         JPanel header = new JPanel(new BorderLayout());

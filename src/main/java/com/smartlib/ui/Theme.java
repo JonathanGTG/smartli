@@ -197,7 +197,7 @@ public final class Theme {
         t.setFont(font(Font.PLAIN, 13));
         t.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
             @Override public Component getTableCellRendererComponent(JTable table, Object value,
-                                                                     boolean isSelected, boolean hasFocus, int row, int column) {
+                    boolean isSelected, boolean hasFocus, int row, int column) {
                 JLabel l = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, false, row, column);
                 l.setBorder(BorderFactory.createEmptyBorder(0, 10, 0, 10));
                 return l;
@@ -209,7 +209,7 @@ public final class Theme {
         h.setPreferredSize(new Dimension(h.getPreferredSize().width, 34));
         h.setDefaultRenderer(new DefaultTableCellRenderer() {
             @Override public Component getTableCellRendererComponent(JTable table, Object value,
-                                                                     boolean isSelected, boolean hasFocus, int row, int column) {
+                    boolean isSelected, boolean hasFocus, int row, int column) {
                 JLabel l = (JLabel) super.getTableCellRendererComponent(table, value, false, false, row, column);
                 l.setOpaque(true);
                 l.setBackground(NAVY_800);

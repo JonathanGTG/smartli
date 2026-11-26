@@ -30,7 +30,7 @@ final class UiKit {
                         : getModel().isPressed() ? bg.darker().darker()
                         : getModel().isRollover() ? bg.darker() : bg;
                 g2.setColor(c);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
                 g2.dispose();
                 super.paintComponent(g);
             }
@@ -42,8 +42,8 @@ final class UiKit {
         b.setFocusPainted(false);
         b.setRolloverEnabled(true);
         b.setForeground(Color.WHITE);
-        b.setFont(b.getFont().deriveFont(Font.BOLD));
-        b.setBorder(BorderFactory.createEmptyBorder(7, 14, 7, 14));
+        b.setFont(Theme.font(Font.BOLD, 13f));
+        b.setBorder(BorderFactory.createEmptyBorder(9, 18, 9, 18));
         b.setCursor(new Cursor(Cursor.HAND_CURSOR));
         return b;
     }
@@ -109,14 +109,19 @@ final class UiKit {
     static JPanel form(Object... labelAndField) {
         JPanel p = new JPanel(new GridBagLayout());
         GridBagConstraints gc = new GridBagConstraints();
-        gc.insets = new Insets(4, 4, 4, 4);
+        gc.insets = new Insets(6, 6, 6, 6);
         gc.anchor = GridBagConstraints.NORTHWEST;
         for (int i = 0; i < labelAndField.length; i += 2) {
             gc.gridy = i / 2;
             gc.gridx = 0;
-            p.add(new JLabel((String) labelAndField[i]), gc);
+            JLabel lbl = new JLabel((String) labelAndField[i]);
+            lbl.setFont(Theme.font(Font.BOLD, 12f));
+            lbl.setForeground(Theme.NAVY_800);
+            p.add(lbl, gc);
             gc.gridx = 1;
-            p.add((Component) labelAndField[i + 1], gc);
+            Component field = (Component) labelAndField[i + 1];
+            if (field instanceof JTextField) Theme.styleField((JTextField) field);
+            p.add(field, gc);
         }
         return p;
     }
@@ -137,8 +142,8 @@ final class UiKit {
     static JTable table(DefaultTableModel model) {
         JTable t = new JTable(model);
         t.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        t.setRowHeight(24);
         t.setAutoCreateRowSorter(true);
+        Theme.styleTable(t);
         return t;
     }
 

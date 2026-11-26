@@ -26,7 +26,7 @@ public class RegisterFrame extends JFrame {
     private final JPasswordField txtPassword = new JPasswordField(22);
     private final JPasswordField txtConfirmPassword = new JPasswordField(22);
 
-    private final JButton btnRegister = new JButton("Daftar Sekarang");
+    private final JButton btnRegister = UiKit.accentButton("Daftar Sekarang", Theme.NAVY_700);
     private final JButton btnCancel = new JButton("Kembali ke Login");
     private final JLabel lblMessage = new JLabel(" ");
 
@@ -70,24 +70,24 @@ public class RegisterFrame extends JFrame {
         root.setBorder(BorderFactory.createEmptyBorder(20, 28, 20, 28));
 
         // Header
-        JPanel headerPanel = new JPanel();
+        JPanel headerPanel = new Theme.HeroPanel(Theme.NAVY_900, Theme.NAVY_700, true);
         headerPanel.setLayout(new BoxLayout(headerPanel, BoxLayout.Y_AXIS));
+        headerPanel.setBorder(BorderFactory.createEmptyBorder(22, 28, 18, 28));
 
         JLabel title = new JLabel("Pendaftaran Anggota Perpustakaan");
-        title.setFont(title.getFont().deriveFont(Font.BOLD, 18f));
+        title.setFont(Theme.font(Font.BOLD, 20f));
+        title.setForeground(Color.WHITE);
         title.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         JLabel subtitle = new JLabel("Lengkapi data di bawah ini untuk mendaftarkan akun SmartLib");
         subtitle.setFont(subtitle.getFont().deriveFont(Font.PLAIN, 12f));
-        subtitle.setForeground(Color.DARK_GRAY);
+        subtitle.setForeground(new Color(0xBFCDE8));
         subtitle.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         headerPanel.add(title);
         headerPanel.add(Box.createVerticalStrut(4));
         headerPanel.add(subtitle);
-        headerPanel.add(Box.createVerticalStrut(12));
-
-        root.add(headerPanel, BorderLayout.NORTH);
+        
 
         // Form Fields
         JPanel form = new JPanel(new GridBagLayout());
@@ -104,7 +104,7 @@ public class RegisterFrame extends JFrame {
         addFormRow(form, gc, row++, "Password *", txtPassword, "Minimal 8 karakter");
         addFormRow(form, gc, row++, "Konfirmasi Password *", txtConfirmPassword, "Ulangi password di atas");
 
-        lblMessage.setForeground(new Color(0xB00020));
+        lblMessage.setForeground(Theme.DANGER);
         lblMessage.setHorizontalAlignment(SwingConstants.CENTER);
         gc.gridx = 0;
         gc.gridy = row++;
@@ -121,7 +121,10 @@ public class RegisterFrame extends JFrame {
 
         root.add(buttonPanel, BorderLayout.SOUTH);
 
-        setContentPane(root);
+        JPanel outer = new JPanel(new BorderLayout());
+        outer.add(headerPanel, BorderLayout.NORTH);
+        outer.add(root, BorderLayout.CENTER);
+        setContentPane(outer);
         getRootPane().setDefaultButton(btnRegister);
 
         btnRegister.addActionListener(e -> doRegister());
@@ -135,7 +138,10 @@ public class RegisterFrame extends JFrame {
         gc.gridy = row;
         gc.weightx = 0.0;
         JLabel lbl = new JLabel(labelText);
+        lbl.setFont(Theme.font(Font.BOLD, 12f));
+        lbl.setForeground(Theme.NAVY_800);
         panel.add(lbl, gc);
+        if (field instanceof JTextField) Theme.styleField((JTextField) field);
 
         gc.gridx = 1;
         gc.weightx = 1.0;
@@ -144,7 +150,7 @@ public class RegisterFrame extends JFrame {
         if (hintText != null) {
             JLabel hint = new JLabel(hintText);
             hint.setFont(hint.getFont().deriveFont(Font.ITALIC, 11f));
-            hint.setForeground(Color.GRAY);
+            hint.setForeground(Theme.MUTED);
             fieldBox.add(hint, BorderLayout.SOUTH);
         }
         panel.add(fieldBox, gc);
