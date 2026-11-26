@@ -27,6 +27,14 @@ public class ReservationService {
                 if (ReservationDAO.hasAvailableCopy(connection, itemId)) {
                     throw new BusinessRuleException("Buku masih tersedia. Silakan ajukan peminjaman langsung.");
                 }
+                if (ReservationDAO.hasReservedCopy(connection, itemId)) {
+                    throw new BusinessRuleException(
+                            "Buku sedang dalam status Dicadangkan (RESERVED) sehingga tidak dapat diajukan antrean.");
+                }
+                if (!ReservationDAO.hasBorrowedCopy(connection, itemId)) {
+                    throw new BusinessRuleException(
+                            "Buku tidak dapat diajukan antrean karena tidak ada eksemplar yang sedang dipinjam (eksemplar berstatus rusak, hilang, atau kosong).");
+                }
                 if (ReservationDAO.hasActiveReservation(connection, memberId, itemId)) {
                     throw new BusinessRuleException("Anda sudah memiliki antrean aktif untuk judul buku ini.");
                 }

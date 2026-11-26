@@ -62,8 +62,13 @@ final class BookDetailDialog {
 
         JPanel actionRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 8));
 
-        // Tombol Reservasi / Antrean jika stok habis
-        if (summary.availableCopies() == 0 && summary.totalCopies() > 0) {
+        // Antrean hanya dibuka bila stok habis karena sedang dipinjam (bukan dicadangkan/rusak/hilang)
+        boolean hasAvailable = summary.availableCopies() > 0;
+        boolean hasBorrowed = summary.borrowedCopies() > 0;
+        boolean hasReserved = copies.stream().anyMatch(c -> c.getStatus() == ItemStatus.RESERVED);
+        boolean canQueue = !hasAvailable && !hasReserved && hasBorrowed;
+
+        if (canQueue) {
             JButton btnQueue = UiKit.accentButton("📌 Ajukan Antrean", new Color(0xE65100));
             btnQueue.addActionListener(e -> {
                 Optional<User> currentUser = AuthService.getInstance().getCurrentUser();
@@ -99,6 +104,19 @@ final class BookDetailDialog {
                 }
             });
             actionRow.add(btnQueue);
+        } else if (!hasAvailable) {
+            String infoText;
+            if (hasReserved) {
+                infoText = "Antrean tidak dibuka: eksemplar sedang dicadangkan.";
+            } else if (summary.totalCopies() == 0) {
+                infoText = "Antrean tidak tersedia: belum ada eksemplar fisik.";
+            } else {
+                infoText = "Antrean tidak tersedia: eksemplar berstatus rusak/hilang.";
+            }
+            JLabel lblInfo = new JLabel(infoText);
+            lblInfo.setForeground(new Color(180, 60, 40));
+            lblInfo.setFont(lblInfo.getFont().deriveFont(Font.ITALIC, 12f));
+            actionRow.add(lblInfo);
         }
 
         JButton close = UiKit.button("Tutup", dialog::dispose);
