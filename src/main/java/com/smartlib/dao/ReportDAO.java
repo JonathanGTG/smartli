@@ -147,7 +147,7 @@ public class ReportDAO {
             "SELECT COUNT(*) FROM reservations WHERE member_id = ? AND status = 'OFFERED'", memberId);
     }
 
-    /** Total nominal denda UNPAID milik anggota. */
+    /** Total nominal denda UNPAID milik anggota yang sudah tercatat di tabel fines. */
     public java.math.BigDecimal sumMemberUnpaidFines(int memberId) {
         String sql = "SELECT COALESCE(SUM(f.amount), 0) FROM fines f " +
                      "JOIN loan_items li ON li.id = f.loan_item_id " +
@@ -162,6 +162,28 @@ public class ReportDAO {
         } catch (SQLException e) {
             throw new DataAccessException("Gagal menghitung denda anggota.", e);
         }
+    }
+
+    /** Daftar due_date dari pinjaman aktif (BORROWED) milik anggota yang sudah melewati jatuh tempo. */
+    public List<java.time.LocalDate> findMemberOverdueDueDates(int memberId) {
+        String sql = "SELECT li.due_date FROM loan_items li " +
+                     "JOIN loans l ON l.id = li.loan_id " +
+                     "WHERE l.member_id = ? AND li.status = 'BORROWED' AND li.due_date < CURDATE() " +
+                     "AND NOT EXISTS (SELECT 1 FROM fines f WHERE f.loan_item_id = li.id)";
+        List<java.time.LocalDate> dueDates = new ArrayList<>();
+        try (Connection c = DatabaseConnection.getConnection();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setInt(1, memberId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Date d = rs.getDate(1);
+                    if (d != null) dueDates.add(d.toLocalDate());
+                }
+            }
+        } catch (SQLException e) {
+            throw new DataAccessException("Gagal memeriksa pinjaman terlambat anggota.", e);
+        }
+        return dueDates;
     }
 
     /** Pinjaman berjalan milik anggota. Setiap baris: [judul, jatuh_tempo, status]. */

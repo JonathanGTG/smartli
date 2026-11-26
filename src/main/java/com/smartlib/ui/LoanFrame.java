@@ -75,10 +75,8 @@ public class LoanFrame extends JFrame {
         addRow(form, c, 2, "Pilih Buku Tersedia *:", cbCopy);
         addRow(form, c, 3, "Ketentuan Jatuh Tempo:", lblDueDate);
 
-        JButton btnBorrow = new JButton("✓ Proses Peminjaman Buku");
+        JButton btnBorrow = UiKit.accentButton("✓ Proses Peminjaman Buku", new Color(25, 118, 210));
         btnBorrow.setFont(btnBorrow.getFont().deriveFont(Font.BOLD, 13f));
-        btnBorrow.setBackground(new Color(25, 118, 210));
-        btnBorrow.setForeground(Color.WHITE);
         btnBorrow.setPreferredSize(new Dimension(220, 38));
         btnBorrow.addActionListener(e -> borrowBook());
 

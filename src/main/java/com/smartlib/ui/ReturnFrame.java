@@ -71,10 +71,8 @@ public class ReturnFrame extends JFrame {
         lblSelected.setFont(lblSelected.getFont().deriveFont(Font.BOLD, 12f));
         bottomPanel.add(lblSelected, BorderLayout.CENTER);
 
-        JButton btnProcess = new JButton("↩ Proses Pengembalian Buku");
+        JButton btnProcess = UiKit.accentButton("↩ Proses Pengembalian Buku", new Color(46, 125, 50));
         btnProcess.setFont(btnProcess.getFont().deriveFont(Font.BOLD, 13f));
-        btnProcess.setBackground(new Color(46, 125, 50));
-        btnProcess.setForeground(Color.WHITE);
         btnProcess.setPreferredSize(new Dimension(250, 40));
         btnProcess.addActionListener(e -> processReturn());
         bottomPanel.add(btnProcess, BorderLayout.EAST);

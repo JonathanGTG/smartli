@@ -156,17 +156,25 @@ public class MemberManagementFrame extends JFrame {
         String currentUser = existing == null || existing.getUserId() == null ? ""
                 : usernames.getOrDefault(existing.getUserId(), "");
         JTextField tfUsername = new JTextField(currentUser, 20);
-        JCheckBox chkAutoUser = new JCheckBox("Buatkan Akun Login Otomatis (Password: SmartLib#123)", existing == null);
+        JCheckBox chkAutoUser = new JCheckBox("Buatkan Akun Login Otomatis (Password: SmartLib#123)", true);
 
-        JPanel form = UiKit.form(
-                "NIM / Kode Anggota *", tfCode,
-                "Nama lengkap *", tfName,
-                "Email", tfEmail,
-                "Telepon", tfPhone,
-                "Alamat", tfAddress,
-                "Tanggal bergabung (yyyy-MM-dd) *", tfJoin,
-                "Username akun login (opsional)", tfUsername,
-                "", chkAutoUser);
+        JPanel form = existing == null
+                ? UiKit.form(
+                        "NIM / Kode Anggota *", tfCode,
+                        "Nama lengkap *", tfName,
+                        "Email", tfEmail,
+                        "Telepon", tfPhone,
+                        "Alamat", tfAddress,
+                        "Tanggal bergabung (yyyy-MM-dd) *", tfJoin,
+                        "Username akun login (opsional)", tfUsername,
+                        "", chkAutoUser)
+                : UiKit.form(
+                        "NIM / Kode Anggota *", tfCode,
+                        "Nama lengkap *", tfName,
+                        "Email", tfEmail,
+                        "Telepon", tfPhone,
+                        "Alamat", tfAddress,
+                        "Tanggal bergabung (yyyy-MM-dd) *", tfJoin);
 
         return UiKit.editDialog(this, existing == null ? "Tambah Anggota" : "Ubah Anggota", form, () -> {
             LocalDate joinDate = MemberService.parseDate(tfJoin.getText());
@@ -179,7 +187,7 @@ public class MemberManagementFrame extends JFrame {
                         tfAddress.getText(), joinDate, uname, chkAutoUser.isSelected());
             } else {
                 service.updateMember(existing.getId(), tfCode.getText(), tfName.getText(), tfEmail.getText(),
-                        tfPhone.getText(), tfAddress.getText(), joinDate, tfUsername.getText());
+                        tfPhone.getText(), tfAddress.getText(), joinDate, currentUser);
             }
         });
     }
